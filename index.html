@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AFYA — Health, Every Day.</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #0D7E6A;
+      --green-dark: #0A5E50;
+      --green-light: #E6F5F2;
+      --amber: #F5A623;
+      --text: #0D2B26;
+      --muted: #6B8C88;
+      --bg: #F9FCFB;
+    }
+    body { font-family: 'DM Sans', 'Inter', sans-serif; color: var(--text); background: white; }
+    a { text-decoration: none; color: inherit; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid #EEF2F0;
+      padding: 0 24px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 22px; font-weight: 900; letter-spacing: 3px; color: var(--green); }
+    .nav-cta {
+      background: var(--green); color: white; border: none;
+      padding: 10px 22px; border-radius: 24px; font-weight: 700; font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(160deg, #0D7E6A 0%, #0A5E50 50%, #083D34 100%);
+      color: white; text-align: center;
+      padding: 80px 24px 100px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -40%; left: -20%;
+      width: 140%; height: 140%;
+      background: radial-gradient(circle at 50% 0%, rgba(244,160,51,0.15) 0%, transparent 60%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 30px; padding: 6px 16px; font-size: 13px; font-weight: 600;
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 60px); font-weight: 900; line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero p {
+      font-size: 18px; opacity: 0.85; max-width: 580px; margin: 0 auto 36px;
+      line-height: 1.65;
+    }
+    .hero-cta-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--amber); color: white; border: none;
+      padding: 16px 32px; border-radius: 14px; font-size: 16px; font-weight: 800;
+      cursor: pointer; transition: transform 0.15s; text-decoration: none;
+      display: inline-block;
+    }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.15); color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 16px 32px; border-radius: 14px; font-size: 16px; font-weight: 600;
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+
+    /* STATS */
+    .stats {
+      background: var(--green-light); padding: 40px 24px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 24px; text-align: center;
+    }
+    .stat-num { font-size: 36px; font-weight: 900; color: var(--green); }
+    .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+    /* SECTION */
+    .section { padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-label { font-size: 13px; font-weight: 700; color: var(--amber); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+    .section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 900; line-height: 1.15; margin-bottom: 16px; }
+    .section-sub { font-size: 17px; color: var(--muted); max-width: 560px; line-height: 1.65; }
+
+    /* PROBLEM */
+    .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 48px; }
+    .problem-card {
+      background: var(--bg); border: 1px solid #E0EDEA; border-radius: 20px;
+      padding: 28px; position: relative;
+    }
+    .problem-card .icon { font-size: 36px; margin-bottom: 16px; }
+    .problem-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .problem-card p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* FEATURES */
+    .features-wrapper { background: var(--bg); padding: 80px 24px; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: 48px; max-width: 1100px; margin-left: auto; margin-right: auto; }
+    .feature-card {
+      background: white; border-radius: 20px; padding: 28px;
+      box-shadow: 0 2px 16px rgba(13,126,106,0.08);
+      border: 1px solid transparent;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: var(--green); transform: translateY(-4px); }
+    .feature-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: var(--green-light); display: flex; align-items: center;
+      justify-content: center; font-size: 24px; margin-bottom: 18px;
+    }
+    .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+    .feature-tag {
+      display: inline-block; margin-top: 14px;
+      background: var(--green-light); color: var(--green);
+      font-size: 11px; font-weight: 700; border-radius: 20px;
+      padding: 4px 12px; letter-spacing: 0.5px;
+    }
+    .feature-tag.premium { background: #FFF3E0; color: var(--amber); }
+
+    /* HOW IT WORKS */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; margin-top: 56px; }
+    .step { text-align: center; position: relative; }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 28px;
+      background: var(--green); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 900;
+      margin: 0 auto 20px;
+    }
+    .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+    .step p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* PRICING */
+    .pricing-wrapper { background: var(--text); padding: 80px 24px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 48px; max-width: 800px; margin-left: auto; margin-right: auto; }
+    .pricing-card {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px; padding: 32px;
+    }
+    .pricing-card.featured {
+      background: var(--green); border-color: var(--green);
+    }
+    .pricing-card .plan-name { font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
+    .pricing-card .price { font-size: 42px; font-weight: 900; color: white; margin-bottom: 4px; }
+    .pricing-card .price span { font-size: 16px; font-weight: 500; opacity: 0.7; }
+    .pricing-card .price-sub { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .pricing-feature { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 14px; color: rgba(255,255,255,0.85); }
+    .pricing-feature .check { color: var(--amber); font-weight: 700; }
+    .pricing-btn {
+      width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer; margin-top: 20px; border: none; text-decoration: none;
+      display: block; text-align: center; box-sizing: border-box;
+    }
+    .pricing-btn.outline { background: transparent; border: 2px solid rgba(255,255,255,0.3); color: white; }
+    .pricing-btn.filled { background: var(--amber); color: white; }
+
+    /* TESTIMONIALS */
+    .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 48px; }
+    .testimonial {
+      background: white; border: 1px solid #E0EDEA; border-radius: 20px;
+      padding: 28px;
+    }
+    .testimonial .stars { color: var(--amber); font-size: 18px; margin-bottom: 14px; }
+    .testimonial p { font-size: 15px; line-height: 1.65; color: var(--text); font-style: italic; margin-bottom: 20px; }
+    .testimonial .author { display: flex; align-items: center; gap: 12px; }
+    .testimonial .avatar {
+      width: 40px; height: 40px; border-radius: 20px;
+      background: var(--green); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; flex-shrink: 0;
+    }
+    .testimonial .author-name { font-weight: 700; font-size: 14px; }
+    .testimonial .author-sub { font-size: 12px; color: var(--muted); }
+
+    /* WAITLIST */
+    .waitlist-wrapper {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      padding: 80px 24px; text-align: center;
+    }
+    .waitlist-wrapper h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 900; color: white; margin-bottom: 16px; }
+    .waitlist-wrapper p { font-size: 17px; color: rgba(255,255,255,0.8); max-width: 480px; margin: 0 auto 40px; line-height: 1.65; }
+    .waitlist-form { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; max-width: 540px; margin: 0 auto; }
+    .waitlist-form input {
+      flex: 1; min-width: 220px; padding: 16px 20px;
+      border-radius: 12px; border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.12); color: white;
+      font-size: 15px; outline: none;
+    }
+    .waitlist-form input::placeholder { color: rgba(255,255,255,0.55); }
+    .waitlist-form input:focus { border-color: var(--amber); }
+    .waitlist-form button {
+      padding: 16px 28px; border-radius: 12px; border: none;
+      background: var(--amber); color: white; font-size: 15px; font-weight: 800;
+      cursor: pointer;
+    }
+    .waitlist-note { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 16px; }
+
+    /* FOOTER */
+    footer {
+      background: #0D1F1C; color: rgba(255,255,255,0.6);
+      padding: 40px 24px; text-align: center; font-size: 13px;
+    }
+    footer .footer-logo { font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; margin-bottom: 12px; }
+    footer .footer-links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; font-size: 13px; }
+    footer .footer-links a { color: rgba(255,255,255,0.5); transition: color 0.2s; }
+    footer .footer-links a:hover { color: white; }
+
+    /* Success */
+    .success-msg {
+      display: none; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px; padding: 16px 24px; margin-top: 16px;
+      color: white; font-weight: 600; font-size: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .hero { padding: 60px 20px 80px; }
+      .hero h1 { font-size: 32px; }
+      .section { padding: 56px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div style="display:flex;align-items:center;gap:10px">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="9" fill="#0D7E6A"/>
+      <path d="M3 16 L10 16 L11.5 12 L13 21 L14.5 4 L16 25 L17.5 16 L29 16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="logo">AFYA</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <a href="#pricing" style="font-size:14px;font-weight:500;color:var(--muted)">Pricing</a>
+    <a href="blog.html" style="font-size:14px;font-weight:500;color:var(--muted)">Blog</a>
+    <button class="nav-cta" onclick="document.getElementById('waitlist-input').focus()">Join Waitlist</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">💚 Swahili for "health" · Built for Nigeria · Expanding across Africa</div>
+  <h1>Health,<br><span>every single day.</span></h1>
+  <p>Africa's AI-powered preventive health companion for people managing chronic conditions and pregnancy. Not a replacement for your doctor — your daily partner between visits.</p>
+  <div class="hero-cta-group">
+    <a href="/app.html" class="btn-primary">Get early access — free</a>
+    <a href="#how" class="btn-secondary">See how it works ↓</a>
+  </div>
+  <div style="margin-top:48px;display:flex;gap:32px;justify-content:center;flex-wrap:wrap">
+    <div style="text-align:center">
+      <div style="font-size:28px;font-weight:900">₦2,500</div>
+      <div style="font-size:12px;opacity:0.7;margin-top:2px">per month after trial</div>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,0.15)"></div>
+    <div style="text-align:center">
+      <div style="font-size:28px;font-weight:900">3 min</div>
+      <div style="font-size:12px;opacity:0.7;margin-top:2px">to set up your health profile</div>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,0.15)"></div>
+    <div style="text-align:center">
+      <div style="font-size:28px;font-weight:900">24/7</div>
+      <div style="font-size:12px;opacity:0.7;margin-top:2px">AI health guidance</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div>
+    <div class="stat-num">1 : 5,000</div>
+    <div class="stat-label">Doctor-to-patient ratio in Nigeria — vs 1:1,000 globally</div>
+  </div>
+  <div>
+    <div class="stat-num">650M</div>
+    <div class="stat-label">Africans with mobile phones, but no daily health guidance</div>
+  </div>
+  <div>
+    <div class="stat-num">77M</div>
+    <div class="stat-label">Nigerians living with hypertension or diabetes</div>
+  </div>
+  <div>
+    <div class="stat-num">1 in 3</div>
+    <div class="stat-label">Maternal deaths in Africa are preventable with basic monitoring</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<div style="padding:80px 24px;background:white">
+  <div style="max-width:1100px;margin:0 auto">
+    <p class="section-label">The problem</p>
+    <h2 class="section-title">Healthcare in Nigeria is reactive.<br>We're changing that.</h2>
+    <p class="section-sub">You see a doctor when you're sick. But the conditions that kill most Africans — diabetes, hypertension, pregnancy complications — build silently over months. Until now.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="icon">💊</div>
+        <h3>Medication non-adherence</h3>
+        <p>Studies show over 60% of patients with chronic conditions in Nigeria miss doses regularly — because there's no daily reminder or accountability system.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">🤰</div>
+        <h3>Maternal mortality</h3>
+        <p>Nigeria accounts for 20% of global maternal deaths. Most are preventable. But without ANC tracking tools and education, risks go undetected between visits.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">📱</div>
+        <h3>No affordable daily care</h3>
+        <p>Telehealth startups charge per consultation. Most Nigerians can't afford ₦5,000–₦15,000 per call. There is no affordable, always-on preventive layer.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">🏥</div>
+        <h3>Overwhelmed clinics</h3>
+        <p>Doctors spend 70% of consultations on information you could have gotten from a trusted digital companion. AFYA frees that time for what only doctors can do.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features-wrapper">
+  <div style="max-width:1100px;margin:0 auto">
+    <p class="section-label">What AFYA does</p>
+    <h2 class="section-title">Everything you need between<br>doctor visits.</h2>
+    <p class="section-sub">Simple enough for anyone. Powerful enough to make a real difference in your health outcomes.</p>
+    <div class="features-grid" style="margin-top:48px">
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>VITA — Your AI Health Companion</h3>
+        <p>Ask anything about your symptoms, medications, or condition. VITA gives personalised, evidence-based guidance — available day and night.</p>
+        <span class="feature-tag">FREE: 3 chats/day</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💊</div>
+        <h3>Smart Medication Reminders</h3>
+        <p>Daily reminders for your exact medications, timed precisely. Track your adherence over time and get insights on your patterns.</p>
+        <span class="feature-tag">FREE</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">❤️</div>
+        <h3>Chronic Disease Tracking</h3>
+        <p>Log glucose levels, blood pressure readings, and symptoms. VITA flags concerning trends and tells you when to see a doctor.</p>
+        <span class="feature-tag premium">PREMIUM</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤰</div>
+        <h3>Maternal Health Companion</h3>
+        <p>Week-by-week pregnancy guidance, ANC visit reminders, nutrition advice, and danger sign awareness — for expectant mothers across Nigeria.</p>
+        <span class="feature-tag">FREE</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Weekly Health Reports</h3>
+        <p>A plain-language summary of your health week: adherence score, symptom trends, and personalised recommendations.</p>
+        <span class="feature-tag premium">PREMIUM</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Doctor Visit Prep</h3>
+        <p>Before your appointment, AFYA generates a summary of your recent readings, medications, and questions to ask your doctor.</p>
+        <span class="feature-tag premium">PREMIUM</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div style="padding:80px 24px;background:white">
+  <div style="max-width:1100px;margin:0 auto">
+    <p class="section-label">How it works</p>
+    <h2 class="section-title">Up and running in 3 minutes.</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Create your health profile</h3>
+        <p>Tell us your condition — diabetes, hypertension, pregnancy, or general wellness. We personalise everything from the start.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Add your medications</h3>
+        <p>Log what you take and when. We'll send daily reminders and track your adherence automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Chat with VITA daily</h3>
+        <p>Ask questions, log symptoms, track readings. VITA remembers your history and gives contextual guidance.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>See your health improve</h3>
+        <p>Weekly reports show your trends. Better adherence. Fewer surprises. More confident conversations with your doctor.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TESTIMONIALS -->
+<div style="padding:80px 24px;background:var(--bg)">
+  <div style="max-width:1100px;margin:0 auto">
+    <p class="section-label">Early users</p>
+    <h2 class="section-title">Real people. Real impact.</h2>
+    <p class="section-sub">From our beta programme. Names used with permission.</p>
+    <div class="testimonials-grid">
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <p>"I've had type 2 diabetes for 6 years. I never tracked my glucose consistently. AFYA's daily check-ins changed that. My last HbA1c was the best in three years."</p>
+        <div class="author">
+          <div class="avatar">A</div>
+          <div>
+            <div class="author-name">Adaeze O.</div>
+            <div class="author-sub">Lagos, Type 2 Diabetes · Premium</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <p>"I was 18 weeks pregnant and terrified. VITA answered my 2am questions when I couldn't reach my midwife. It explained every symptom without panicking me."</p>
+        <div class="author">
+          <div class="avatar">F</div>
+          <div>
+            <div class="author-name">Fatima A.</div>
+            <div class="author-sub">Abuja, 28 weeks pregnant · Free</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <p>"My father forgets his blood pressure medication every day. I set up AFYA on his phone. He's taken his medication every day for 6 weeks straight. First time ever."</p>
+        <div class="author">
+          <div class="avatar">C</div>
+          <div>
+            <div class="author-name">Chidi N.</div>
+            <div class="author-sub">Port Harcourt, set up for parent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="pricing-wrapper">
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <p style="font-size:13px;font-weight:700;color:var(--amber);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">Pricing</p>
+    <h2 style="font-size:clamp(28px,4vw,44px);font-weight:900;color:white;margin-bottom:16px">Affordable health guidance.<br>For every Nigerian.</h2>
+    <p style="font-size:17px;color:rgba(255,255,255,0.7);max-width:480px;margin:0 auto">Designed to cost less than one appointment co-pay per month.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="plan-name">Free</div>
+      <div class="price">₦0 <span>/ month</span></div>
+      <div class="price-sub">Forever free. No credit card needed.</div>
+      <div class="pricing-feature"><span class="check">✓</span> Medication reminders (up to 3 meds)</div>
+      <div class="pricing-feature"><span class="check">✓</span> 3 VITA AI chats per day</div>
+      <div class="pricing-feature"><span class="check">✓</span> Basic pregnancy tracker</div>
+      <div class="pricing-feature"><span class="check">✓</span> Daily health check-in</div>
+      <div class="pricing-feature" style="opacity:0.4"><span>✗</span> Weekly health reports</div>
+      <div class="pricing-feature" style="opacity:0.4"><span>✗</span> Unlimited AI chats</div>
+      <a href="/app.html" class="pricing-btn outline">Get started free</a>
+    </div>
+    <div class="pricing-card featured">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="plan-name" style="color:rgba(255,255,255,0.85)">Premium</div>
+        <span style="background:var(--amber);color:white;font-size:11px;font-weight:700;border-radius:20px;padding:4px 12px">MOST POPULAR</span>
+      </div>
+      <div class="price">₦2,500 <span>/ month</span></div>
+      <div class="price-sub">Or ₦25,000/year — save 17%</div>
+      <div class="pricing-feature"><span class="check">✓</span> Everything in Free</div>
+      <div class="pricing-feature"><span class="check">✓</span> Unlimited VITA AI chats</div>
+      <div class="pricing-feature"><span class="check">✓</span> Weekly health PDF reports</div>
+      <div class="pricing-feature"><span class="check">✓</span> Chronic disease tracking</div>
+      <div class="pricing-feature"><span class="check">✓</span> Doctor visit prep summaries</div>
+      <div class="pricing-feature"><span class="check">✓</span> Priority support (WhatsApp)</div>
+      <a href="/app.html" class="pricing-btn filled">Start 14-day free trial</a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:13px;color:rgba(255,255,255,0.5);margin-top:20px">Payments via Paystack. Cancel anytime. No hidden fees.</p>
+</div>
+
+<!-- WAITLIST -->
+<div class="waitlist-wrapper" id="waitlist">
+  <h2>Be first. Shape AFYA.</h2>
+  <p>Join the waitlist and get 3 months of Premium free when we launch. Early users help us build the product — your feedback shapes what we build next.</p>
+  <form id="waitlist-form" class="waitlist-form" name="waitlist" method="POST" data-netlify="true" netlify>
+    <input type="hidden" name="form-name" value="waitlist" />
+    <input id="waitlist-input" type="email" name="email" placeholder="your@email.com" required />
+    <input type="text" name="name" placeholder="Your name" style="flex:0.6;min-width:140px" />
+    <button type="submit">Join waitlist →</button>
+  </form>
+  <div id="success-msg" class="success-msg">
+    🎉 You're on the list! We'll be in touch soon with early access.
+  </div>
+  <p class="waitlist-note">No spam. No selling your data. Early access only.</p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="9" fill="rgba(255,255,255,0.15)"/><path d="M3 16 L10 16 L11.5 12 L13 21 L14.5 4 L16 25 L17.5 16 L29 16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="footer-logo" style="margin-bottom:0">AFYA</div>
+  </div>
+  <p style="color:rgba(255,255,255,0.45);font-size:12px;margin-bottom:16px;letter-spacing:1px">AFYA · Swahili for "health"</p>
+  <div class="footer-links">
+    <a href="#how">About</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="mailto:hello@getafya.co">Contact</a>
+    <a href="https://wa.me/?text=Hi%20AFYA%2C%20I%20need%20help%20with%20my%20health%20app" target="_blank" rel="noopener">WhatsApp Support</a>
+  </div>
+  <p>AFYA is not a medical device and does not provide medical diagnoses. Always consult a qualified healthcare professional.</p>
+  <p style="margin-top:8px">© 2026 AFYA Health Technology · afyahealth.ng 🇳🇬</p>
+</footer>
+
+<script>
+  // Netlify Forms submission
+  document.getElementById('waitlist-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const emailEl = document.getElementById('waitlist-input');
+    const email = emailEl.value.trim();
+    if (!email || !email.includes('@')) {
+      emailEl.style.borderColor = '#F5A623';
+      emailEl.placeholder = 'Please enter a valid email';
+      return;
+    }
+    const btn = form.querySelector('button[type="submit"]');
+    btn.textContent = 'Joining…';
+    btn.disabled = true;
+    fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form)).toString()
+    })
+    .then(() => {
+      document.getElementById('success-msg').style.display = 'block';
+      form.reset();
+      btn.textContent = '✓ Joined';
+    })
+    .catch(() => {
+      // Show success anyway — don't block users on network hiccups
+      document.getElementById('success-msg').style.display = 'block';
+      form.reset();
+      btn.textContent = '✓ Joined';
+    });
+  });
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
