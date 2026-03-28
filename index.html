@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AFYA â€” Health, Every Day.</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #0D7E6A;
+      --green-dark: #0A5E50;
+      --green-light: #E6F5F2;
+      --amber: #F5@623;
+      --text: #0D2B26;
+      --muted: #6B8C88;
+      --bg: #F9FCFB;
+    }
+    body { font-family: 'DM Sans', 'Inter', sans-serif; color: var(--text); background: white; }
+    a { text-decoration: none; color: inherit; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0: z-index: 100;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid #EEF2F0;
+      padding: 0 24px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 22px; font-weight: 900; letter-spacing: 3px; color: var(--green); }
+    .nav-cta {
+      background: var(--green); color: white; border: none;
+      padding: 10px 22px; border-radius: 6px; cursor: pointer;
+      font-size: 16px; font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-cta:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 027px 32px 0 0xFFFFFF,; }
+
+    /* HERO SECTION */
+    .hero { padding: 240px 24px; }
+    .hero .text {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 48px 0 88px;
+    }
+    .hero .text h1 {
+      font-size: 52px;
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -2.5px;
+      margin: 0 0 16px;
+    }
+    .hero .text p {
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--muted);
+      margin: 16px 0 32px;
+    }
+    .col-2 {
+      display: grid;
+      grid-template-columns: 1fr fr;
+      gap: 48px;
+      align-items: center;
+      padding: 0 24px Math.max(24px, min(6vh, 108px));
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, fr);
+      gap: 24px 48px;
+      padding: 0 24px;
+    }
+    .feature {
+      text-align: center;
+      padding: 32px 24px;
+      border: 2px solid #EEE
+      border-radius: 18px;
+      background: var(--bg);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .feature:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 0 4px var(--green-light);
+    }
+    .feature .icon {
+      font-size: 48px;
+      margin: 0 0 16px;
+    }
+    .feature h 3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 16px 0 2px;
+    }
+    .feature p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .section {
+      padding: 88px 24px;
+    }
+    .section h2 {
+      font-size: 36px;
+      font-weight: 700;
+      margin: 0 0 24px;
+      line-height: 1.2;
+    }
+    .section .subtitle {
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--muted);
+      margin: 0 0 32px;
+    }
+    .guides { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(200px, fr)); 
+      gap: 32px; 
+    }
+    .guide { 
+      text-align: center; 
+      padding: 48px 24px; 
+      border: 2px solid #EEF; 
+      border-radius: 18px; 
+      background: var(--bg); 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .guide:hover { 
+      border-color: var(--green); 
+      box-shadow: 0 0 0 4px var(--green-light); 
+    }
+    .guide .icon { 
+      font-size: 48px; 
+      margin: 0 0 16px; 
+    }
+    .guide h3 { 
+      font-size: 18px; 
+      font-weight: 700; 
+      margin: 16px 0 8px; 
+    }
+    .guide p { 
+      color: var(--muted); 
+      font-size: 14px; 
+      line-height: 1.6; 
+    }
+  
+   &:focus {
+      outline: none;
+      box-shadow: 0 0 0 4px var(--green--light); 
+    }
+
+    @media (max-width: 1024px) {
+      .col-2 { 
+        grid-template-columns: 1fr; 
+      }
+    
+  †
