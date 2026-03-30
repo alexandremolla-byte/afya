@@ -410,6 +410,7 @@ function VitalLogCard({ profile, vitals, onLog }) {
     diabetes:    { type:"blood_sugar", label:"Blood Sugar",     unit:"mg/dL", emoji:"🩸", ph:"e.g. 127",  showCtx:true,  ctxOpts:["fasting","after_meal","bedtime"], target:"Target: 80–130 fasting · <180 after meals" },
     hypertension:{ type:"bp",          label:"Blood Pressure",  unit:"mmHg",  emoji:"🫀", ph:"Systolic",  ph2:"Diastolic", showCtx:false, target:"Target: <130/80 mmHg" },
     maternal:    { type:"weight",      label:"Weight",          unit:"kg",    emoji:"⚖️", ph:"e.g. 68",   showCtx:false, target:"Log your weight weekly" },
+    general:     { type:"weight",      label:"Weight",          unit:"kg",    emoji:"⚖️", ph:"e.g. 75",   showCtx:false, target:"Track your weight for general wellness" },
   };
   const cfg = cfgMap[condition];
   if (!cfg) return null;
