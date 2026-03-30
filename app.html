@@ -37,7 +37,7 @@ const { useState, useRef, useEffect, useCallback } = React;
 // ─── CONFIG ───────────────────────────────────────────────────────────────
 const SUPABASE_URL    = 'https://dmszzxxbnrqiugfjwubb.supabase.co';
 const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc3p6eHhibnJxaXVnZmp3dWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDExODgsImV4cCI6MjA5MDM3NzE4OH0.R9LF1vbSmAcWOtyAgty8kMYaaW5-ntOByr-9FcK4zSE';
-const PAYSTACK_KEY    = 'pk_test_f0b02f7ab0283fbc95cb18b5dae7cd59c9851a0e'; // pk_test_xxx or pk_live_xxx
+const PAYSTACK_KEY    = 'REPLACE_WITH_PAYSTACK_PUBLIC_KEY'; // pk_test_xxx or pk_live_xxx
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── BRAND ───────────────────────────────────────────────────────────────
@@ -484,7 +484,7 @@ function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isP
               <p style={{ fontSize:12, opacity:0.9 }}>Unlimited AI chats, weekly reports, advanced tracking</p>
             </div>
           </div>
-          <button onClick={onShowUpgrade} style={{ marginTop:12, width:"100%", padding:"10px", borderRadius:10, border:"none", background:"rgba(255,255,255,0.25)", color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+          <button onClick={() => onShowUpgrade()} style={{ marginTop:12, width:"100%", padding:"10px", borderRadius:10, border:"none", background:"rgba(255,255,255,0.25)", color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
             Upgrade — ₦2,500/month →
           </button>
         </div>
@@ -565,7 +565,7 @@ function Chat({ profile, isPremium, onShowUpgrade }) {
             </span>
           </div>
           {hitLimit && (
-            <button onClick={onShowUpgrade} style={{ padding:"5px 14px", borderRadius:20, border:"none", background:BRAND.color.accent, color:"white", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+            <button onClick={() => onShowUpgrade()} style={{ padding:"5px 14px", borderRadius:20, border:"none", background:BRAND.color.accent, color:"white", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
               Upgrade ⭐
             </button>
           )}
@@ -601,7 +601,7 @@ function Chat({ profile, isPremium, onShowUpgrade }) {
             <p style={{ fontSize:32, marginBottom:8 }}>⭐</p>
             <p style={{ fontWeight:700, fontSize:15, marginBottom:6 }}>You've used your 3 free chats today</p>
             <p style={{ fontSize:13, color:BRAND.color.muted, marginBottom:16 }}>Upgrade to Premium for unlimited daily AI health guidance.</p>
-            <button onClick={onShowUpgrade} style={{ width:"100%", padding:"12px", borderRadius:12, border:"none", background:BRAND.color.accent, color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+            <button onClick={() => onShowUpgrade()} style={{ width:"100%", padding:"12px", borderRadius:12, border:"none", background:BRAND.color.accent, color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
               Upgrade to Premium — ₦2,500/month
             </button>
           </div>
@@ -717,7 +717,7 @@ function Medications({ meds, onToggleMed, profile, isPremium, onShowUpgrade }) {
       ))}
 
       {!isPremium && (
-        <button onClick={onShowUpgrade} style={{ width:"100%", background:"white", borderRadius:14, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginTop:8, border:`2px dashed ${BRAND.color.accent}`, cursor:"pointer", fontFamily:"inherit" }}>
+        <button onClick={() => onShowUpgrade()} style={{ width:"100%", background:"white", borderRadius:14, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginTop:8, border:`2px dashed ${BRAND.color.accent}`, cursor:"pointer", fontFamily:"inherit" }}>
           <span style={{ fontSize:22 }}>🔒</span>
           <div style={{ textAlign:"left" }}>
             <p style={{ fontWeight:600, fontSize:14, color:BRAND.color.text }}>Add custom medications</p>
