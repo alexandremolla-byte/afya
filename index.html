@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AFYA — Health, Every Day.</title>
+  <title>AFYA — Africa's AI Health Companion</title>
+  <meta name="description" content="AFYA helps Nigerians manage diabetes, hypertension, and pregnancy with AI health guidance, medication reminders, and vitals tracking. Free to start."/>
+  <meta property="og:title" content="AFYA — Africa's AI Health Companion"/>
+  <meta property="og:description" content="Track medications, monitor vitals, and get AI health guidance built for Nigeria. Free to start."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://getafya.co"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -215,12 +220,22 @@
     footer .footer-links a { color: rgba(255,255,255,0.5); transition: color 0.2s; }
     footer .footer-links a:hover { color: white; }
 
-    /* Success */
-    .success-msg {
-      display: none; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 12px; padding: 16px 24px; margin-top: 16px;
-      color: white; font-weight: 600; font-size: 15px;
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid #EEF5F3; padding: 18px 0; }
+    .faq-q {
+      font-weight: 700; font-size: 16px; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      user-select: none;
     }
+    .faq-q:hover { color: var(--green); }
+    .faq-chevron { transition: transform .2s; flex-shrink: 0; }
+    .faq-a {
+      font-size: 14px; color: var(--muted); line-height: 1.7;
+      margin-top: 12px; display: none;
+    }
+    .faq-item.faq-open .faq-a { display: block; }
+    .faq-item.faq-open .faq-q { color: var(--green); }
+    .faq-item.faq-open .faq-chevron { transform: rotate(180deg); }
 
     @media (max-width: 600px) {
       .hero { padding: 60px 20px 80px; }
@@ -243,33 +258,41 @@
   <div style="display:flex;align-items:center;gap:16px">
     <a href="#pricing" style="font-size:14px;font-weight:500;color:var(--muted)">Pricing</a>
     <a href="blog.html" style="font-size:14px;font-weight:500;color:var(--muted)">Blog</a>
-    <button class="nav-cta" onclick="document.getElementById('waitlist-input').focus()">Join Waitlist</button>
+    <a href="/app.html" class="nav-cta">Get started free →</a>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">💚 Swahili for "health" · Built for Nigeria · Expanding across Africa</div>
-  <h1>Health,<br><span>every single day.</span></h1>
-  <p>Africa's AI-powered preventive health companion for people managing chronic conditions and pregnancy. Not a replacement for your doctor — your daily partner between visits.</p>
+  <div class="hero-badge">💚 Swahili for "health" · Built for Nigeria · Powered by Claude AI</div>
+  <h1>Your health.<br><span>Managed daily.</span></h1>
+  <p>Africa's AI-powered preventive health companion for people managing diabetes, hypertension, and pregnancy. Not a replacement for your doctor — your daily partner between visits.</p>
   <div class="hero-cta-group">
-    <a href="/app.html" class="btn-primary">Get early access — free</a>
+    <a href="/app.html" class="btn-primary">Start for free →</a>
     <a href="#how" class="btn-secondary">See how it works ↓</a>
   </div>
-  <div style="margin-top:48px;display:flex;gap:32px;justify-content:center;flex-wrap:wrap">
-    <div style="text-align:center">
-      <div style="font-size:28px;font-weight:900">₦2,500</div>
-      <div style="font-size:12px;opacity:0.7;margin-top:2px">per month after trial</div>
-    </div>
-    <div style="width:1px;background:rgba(255,255,255,0.15)"></div>
-    <div style="text-align:center">
-      <div style="font-size:28px;font-weight:900">3 min</div>
-      <div style="font-size:12px;opacity:0.7;margin-top:2px">to set up your health profile</div>
-    </div>
-    <div style="width:1px;background:rgba(255,255,255,0.15)"></div>
-    <div style="text-align:center">
-      <div style="font-size:28px;font-weight:900">24/7</div>
-      <div style="font-size:12px;opacity:0.7;margin-top:2px">AI health guidance</div>
+  <!-- Phone mockup -->
+  <div style="margin-top:48px;display:flex;justify-content:center">
+    <div style="max-width:260px;width:100%;background:#0D2B26;border-radius:36px;padding:10px;box-shadow:0 32px 80px rgba(0,0,0,0.4)">
+      <div style="background:linear-gradient(160deg,#0D7E6A,#0A5E50);border-radius:28px;padding:22px 18px;color:white">
+        <p style="font-size:12px;opacity:0.7;margin-bottom:4px">Today's Health Score</p>
+        <p style="font-size:56px;font-weight:900;line-height:1">72<span style="font-size:22px">%</span></p>
+        <p style="font-size:12px;opacity:0.7;margin-top:2px">1 medication pending</p>
+        <div style="background:rgba(255,255,255,0.2);border-radius:6px;height:6px;margin-top:14px">
+          <div style="width:72%;background:#F5A623;border-radius:6px;height:6px"></div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;margin-top:14px;display:flex;align-items:center;gap:10px">
+          <div style="width:9px;height:9px;border-radius:5px;background:#F5A623;flex-shrink:0"></div>
+          <div>
+            <p style="font-weight:700;font-size:13px">Metformin 500mg</p>
+            <p style="font-size:11px;opacity:0.7">🕐 08:00 · PENDING</p>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px;margin-top:10px">
+          <p style="font-size:11px;opacity:0.75;margin-bottom:3px">🤖 AFYA AI says:</p>
+          <p style="font-size:12px;line-height:1.5;opacity:0.9">"Your blood sugar has been in target range for 4 days. Keep it up! 💚"</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -334,39 +357,39 @@
     <div class="features-grid" style="margin-top:48px">
       <div class="feature-card">
         <div class="feature-icon">🤖</div>
-        <h3>VITA — Your AI Health Companion</h3>
-        <p>Ask anything about your symptoms, medications, or condition. VITA gives personalised, evidence-based guidance — available day and night.</p>
+        <h3>AFYA AI — Your Health Companion</h3>
+        <p>Ask anything about your symptoms, medications, or condition. AFYA AI knows your vitals, your meds, and your health history — and gives genuinely personalised guidance.</p>
         <span class="feature-tag">FREE: 3 chats/day</span>
       </div>
       <div class="feature-card">
         <div class="feature-icon">💊</div>
-        <h3>Smart Medication Reminders</h3>
-        <p>Daily reminders for your exact medications, timed precisely. Track your adherence over time and get insights on your patterns.</p>
-        <span class="feature-tag">FREE</span>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">❤️</div>
-        <h3>Chronic Disease Tracking</h3>
-        <p>Log glucose levels, blood pressure readings, and symptoms. VITA flags concerning trends and tells you when to see a doctor.</p>
-        <span class="feature-tag premium">PREMIUM</span>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🤰</div>
-        <h3>Maternal Health Companion</h3>
-        <p>Week-by-week pregnancy guidance, ANC visit reminders, nutrition advice, and danger sign awareness — for expectant mothers across Nigeria.</p>
+        <h3>Medication Tracker</h3>
+        <p>Log your medications and mark them taken each day. Track your adherence score, add custom medications, and build a consistent daily health habit.</p>
         <span class="feature-tag">FREE</span>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📊</div>
-        <h3>Weekly Health Reports</h3>
-        <p>A plain-language summary of your health week: adherence score, symptom trends, and personalised recommendations.</p>
+        <h3>Vitals Monitoring</h3>
+        <p>Log blood sugar, blood pressure, or weight with one tap. AFYA AI actively references your real numbers in every conversation — not generic advice.</p>
+        <span class="feature-tag">FREE</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✨</div>
+        <h3>Weekly AI Health Digest</h3>
+        <p>Every week, AFYA AI writes a personalised health summary — your real trends, what's going well, and one specific action to focus on next week.</p>
         <span class="feature-tag premium">PREMIUM</span>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔔</div>
-        <h3>Doctor Visit Prep</h3>
-        <p>Before your appointment, AFYA generates a summary of your recent readings, medications, and questions to ask your doctor.</p>
-        <span class="feature-tag premium">PREMIUM</span>
+        <div class="feature-icon">🤰</div>
+        <h3>Maternal Health Support</h3>
+        <p>Week-by-week pregnancy guidance, prenatal vitamin reminders, and trimester-specific AI advice. For expectant mothers across Nigeria.</p>
+        <span class="feature-tag">FREE</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎁</div>
+        <h3>Refer &amp; Earn Premium</h3>
+        <p>Every user gets a personal referral code. Share it with a friend — when they sign up, you both instantly get 1 month of Premium free. No payment needed.</p>
+        <span class="feature-tag">FREE</span>
       </div>
     </div>
   </div>
@@ -390,8 +413,8 @@
       </div>
       <div class="step">
         <div class="step-num">3</div>
-        <h3>Chat with VITA daily</h3>
-        <p>Ask questions, log symptoms, track readings. VITA remembers your history and gives contextual guidance.</p>
+        <h3>Chat with AFYA AI daily</h3>
+        <p>Ask questions, log symptoms, track readings. AFYA AI remembers your history and gives contextual guidance.</p>
       </div>
       <div class="step">
         <div class="step-num">4</div>
@@ -422,7 +445,7 @@
       </div>
       <div class="testimonial">
         <div class="stars">★★★★★</div>
-        <p>"I was 18 weeks pregnant and terrified. VITA answered my 2am questions when I couldn't reach my midwife. It explained every symptom without panicking me."</p>
+        <p>"I was 18 weeks pregnant and terrified. AFYA AI answered my 2am questions when I couldn't reach my midwife. It explained every symptom without panicking me."</p>
         <div class="author">
           <div class="avatar">F</div>
           <div>
@@ -458,12 +481,13 @@
       <div class="plan-name">Free</div>
       <div class="price">₦0 <span>/ month</span></div>
       <div class="price-sub">Forever free. No credit card needed.</div>
-      <div class="pricing-feature"><span class="check">✓</span> Medication reminders (up to 3 meds)</div>
-      <div class="pricing-feature"><span class="check">✓</span> 3 VITA AI chats per day</div>
-      <div class="pricing-feature"><span class="check">✓</span> Basic pregnancy tracker</div>
-      <div class="pricing-feature"><span class="check">✓</span> Daily health check-in</div>
-      <div class="pricing-feature" style="opacity:0.4"><span>✗</span> Weekly health reports</div>
+      <div class="pricing-feature"><span class="check">✓</span> 3 AFYA AI chats per day</div>
+      <div class="pricing-feature"><span class="check">✓</span> Medication tracker</div>
+      <div class="pricing-feature"><span class="check">✓</span> Vitals logging</div>
+      <div class="pricing-feature"><span class="check">✓</span> Referral code (earn free Premium)</div>
       <div class="pricing-feature" style="opacity:0.4"><span>✗</span> Unlimited AI chats</div>
+      <div class="pricing-feature" style="opacity:0.4"><span>✗</span> Weekly AI Health Digest</div>
+      <div class="pricing-feature" style="opacity:0.4"><span>✗</span> Custom medications</div>
       <a href="/app.html" class="pricing-btn outline">Get started free</a>
     </div>
     <div class="pricing-card featured">
@@ -474,31 +498,69 @@
       <div class="price">₦2,500 <span>/ month</span></div>
       <div class="price-sub">Or ₦25,000/year — save 17%</div>
       <div class="pricing-feature"><span class="check">✓</span> Everything in Free</div>
-      <div class="pricing-feature"><span class="check">✓</span> Unlimited VITA AI chats</div>
-      <div class="pricing-feature"><span class="check">✓</span> Weekly health PDF reports</div>
-      <div class="pricing-feature"><span class="check">✓</span> Chronic disease tracking</div>
-      <div class="pricing-feature"><span class="check">✓</span> Doctor visit prep summaries</div>
-      <div class="pricing-feature"><span class="check">✓</span> Priority support (WhatsApp)</div>
-      <a href="/app.html" class="pricing-btn filled">Start 14-day free trial</a>
+      <div class="pricing-feature"><span class="check">✓</span> Unlimited AFYA AI chats</div>
+      <div class="pricing-feature"><span class="check">✓</span> Weekly personalised AI Digest</div>
+      <div class="pricing-feature"><span class="check">✓</span> Add custom medications</div>
+      <div class="pricing-feature"><span class="check">✓</span> Refer friends to earn more free months</div>
+      <a href="/app.html" class="pricing-btn filled">Upgrade to Premium ⭐</a>
     </div>
   </div>
   <p style="text-align:center;font-size:13px;color:rgba(255,255,255,0.5);margin-top:20px">Payments via Paystack. Cancel anytime. No hidden fees.</p>
 </div>
 
-<!-- WAITLIST -->
-<div class="waitlist-wrapper" id="waitlist">
-  <h2>Be first. Shape AFYA.</h2>
-  <p>Join the waitlist and get 3 months of Premium free when we launch. Early users help us build the product — your feedback shapes what we build next.</p>
-  <form id="waitlist-form" class="waitlist-form" name="waitlist" method="POST" data-netlify="true" netlify>
-    <input type="hidden" name="form-name" value="waitlist" />
-    <input id="waitlist-input" type="email" name="email" placeholder="your@email.com" required />
-    <input type="text" name="name" placeholder="Your name" style="flex:0.6;min-width:140px" />
-    <button type="submit">Join waitlist →</button>
-  </form>
-  <div id="success-msg" class="success-msg">
-    🎉 You're on the list! We'll be in touch soon with early access.
+<!-- FAQ -->
+<div style="padding:80px 24px;background:white" id="faq">
+  <div style="max-width:680px;margin:0 auto">
+    <p class="section-label" style="text-align:center">FAQ</p>
+    <h2 class="section-title" style="text-align:center;margin-bottom:48px">Common questions</h2>
+    <div id="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('faq-open')">
+          Is AFYA a replacement for my doctor?
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-a">No. AFYA is a health companion, not a medical provider. It helps you track your health and understand your condition better — but it cannot diagnose, prescribe, or replace clinical care. Always consult your doctor for diagnosis and treatment.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('faq-open')">
+          Do I need to download an app?
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-a">No download needed. AFYA is a web app — open it in any browser at getafya.co/app.html. On Android Chrome, you can tap "Add to Home Screen" for a native app feel with its own icon.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('faq-open')">
+          How does the referral system work?
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-a">Every AFYA user gets a personal referral code. Share it with a friend — when they sign up and enter your code during onboarding, you both instantly get 1 month of Premium free, with no payment required. Your free months stack, so the more you refer, the longer your Premium lasts.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('faq-open')">
+          Is my health data safe?
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-a">Your data is stored in an encrypted database (Supabase). We never sell your health data or share it with advertisers. Your AI conversations are processed securely and are not used to train AI models.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('faq-open')">
+          What payment methods does AFYA accept?
+          <span class="faq-chevron">▾</span>
+        </div>
+        <div class="faq-a">AFYA uses Paystack for payments. You can pay with any Nigerian bank card (Verve, Mastercard, Visa), bank transfer, or USSD. All payments are processed securely by Paystack.</div>
+      </div>
+    </div>
   </div>
-  <p class="waitlist-note">No spam. No selling your data. Early access only.</p>
+</div>
+
+<!-- FINAL CTA -->
+<div class="waitlist-wrapper" id="get-started" style="text-align:center">
+  <h2>Start managing your health today.</h2>
+  <p>Free to use. No app download. Works on any smartphone in Nigeria.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="/app.html" class="btn-primary" style="background:white;color:var(--green-dark)">Open AFYA free →</a>
+  </div>
+  <p class="waitlist-note">Already have an account? <a href="/app.html" style="color:rgba(255,255,255,0.8);text-decoration:underline">Log in here</a></p>
 </div>
 
 <!-- FOOTER -->
@@ -520,38 +582,6 @@
 </footer>
 
 <script>
-  // Netlify Forms submission
-  document.getElementById('waitlist-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const form = e.target;
-    const emailEl = document.getElementById('waitlist-input');
-    const email = emailEl.value.trim();
-    if (!email || !email.includes('@')) {
-      emailEl.style.borderColor = '#F5A623';
-      emailEl.placeholder = 'Please enter a valid email';
-      return;
-    }
-    const btn = form.querySelector('button[type="submit"]');
-    btn.textContent = 'Joining…';
-    btn.disabled = true;
-    fetch('/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(new FormData(form)).toString()
-    })
-    .then(() => {
-      document.getElementById('success-msg').style.display = 'block';
-      form.reset();
-      btn.textContent = '✓ Joined';
-    })
-    .catch(() => {
-      // Show success anyway — don't block users on network hiccups
-      document.getElementById('success-msg').style.display = 'block';
-      form.reset();
-      btn.textContent = '✓ Joined';
-    });
-  });
-
   // Smooth scroll for anchor links
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
