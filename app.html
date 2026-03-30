@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #root { height: 100%; background: #F0F4F3; }
@@ -19,8 +20,10 @@
     @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
     .typing-dot { animation: bounce 1.2s infinite; }
     .fade-in { animation: fadeIn 0.3s ease; }
+    .slide-up { animation: slideUp 0.35s ease; }
   </style>
 </head>
 <body>
@@ -31,15 +34,15 @@
 <script type="text/babel">
 const { useState, useRef, useEffect, useCallback } = React;
 
-// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────
-const SUPABASE_URL  = 'https://dmszzxxbnrqiugfjwubb.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc3p6eHhibnJxaXVnZmp3dWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDExODgsImV4cCI6MjA5MDM3NzE4OH0.R9LF1vbSmAcWOtyAgty8kMYaaW5-ntOByr-9FcK4zSE';
+// ─── CONFIG ───────────────────────────────────────────────────────────────
+const SUPABASE_URL    = 'https://dmszzxxbnrqiugfjwubb.supabase.co';
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc3p6eHhibnJxaXVnZmp3dWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDExODgsImV4cCI6MjA5MDM3NzE4OH0.R9LF1vbSmAcWOtyAgty8kMYaaW5-ntOByr-9FcK4zSE';
+const PAYSTACK_KEY    = 'REPLACE_WITH_PAYSTACK_PUBLIC_KEY'; // pk_test_xxx or pk_live_xxx
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── BRAND ───────────────────────────────────────────────────────────────
 const BRAND = {
   name: "AFYA",
-  aiName: "AFYA",
   color: {
     primary: "#0D7E6A", light: "#E8F5F2", accent: "#F5A623",
     danger: "#E05252", text: "#0D2B26", muted: "#6B8C88",
@@ -55,9 +58,9 @@ function generatePromoCode(name) {
 }
 
 const INITIAL_MEDS = [
-  { id: 1, name: "Metformin 500mg",  time: "08:00", taken: true,  condition: "diabetes" },
-  { id: 2, name: "Amlodipine 5mg",   time: "08:00", taken: false, condition: "hypertension" },
-  { id: 3, name: "Folic Acid 400mcg",time: "12:00", taken: false, condition: "maternal" },
+  { id: 1, name: "Metformin 500mg",   time: "08:00", taken: true,  condition: "diabetes" },
+  { id: 2, name: "Amlodipine 5mg",    time: "08:00", taken: false, condition: "hypertension" },
+  { id: 3, name: "Folic Acid 400mcg", time: "12:00", taken: false, condition: "maternal" },
 ];
 
 const CHAT_INIT = [{
@@ -68,25 +71,25 @@ const CHAT_INIT = [{
 // ─── LOADING SCREEN ──────────────────────────────────────────────────────
 function LoadingScreen({ message = "Loading…" }) {
   return (
-    <div style={{ minHeight: "100vh", background: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
+    <div style={{ minHeight:"100vh", background:"white", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:20 }}>
       <svg width="60" height="60" viewBox="0 0 80 80" fill="none">
         <rect width="80" height="80" rx="20" fill="#0D7E6A"/>
         <path d="M8 40 L22 40 L26 30 L30 52 L34 18 L38 58 L42 40 L72 40" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
-      <div style={{ width: 32, height: 32, border: `3px solid ${BRAND.color.light}`, borderTopColor: BRAND.color.primary, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      <p style={{ color: BRAND.color.muted, fontSize: 14 }}>{message}</p>
+      <div style={{ width:32, height:32, border:`3px solid ${BRAND.color.light}`, borderTopColor:BRAND.color.primary, borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
+      <p style={{ color:BRAND.color.muted, fontSize:14 }}>{message}</p>
     </div>
   );
 }
 
 // ─── AUTH SCREEN ─────────────────────────────────────────────────────────
 function AuthScreen() {
-  const [mode, setMode]       = useState("login");
-  const [email, setEmail]     = useState("");
+  const [mode, setMode]         = useState("login");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
-  const [message, setMessage] = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
+  const [message, setMessage]   = useState(null);
 
   const submit = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -98,98 +101,143 @@ function AuthScreen() {
     } else {
       const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
       if (error) setError(error.message === "Invalid login credentials"
-        ? "Wrong email or password. Try again."
-        : error.message);
+        ? "Wrong email or password. Try again." : error.message);
     }
     setLoading(false);
   };
 
   const inp = (extra) => ({
-    width: "100%", padding: "14px 16px",
-    border: `2px solid ${BRAND.color.light}`, borderRadius: 12,
-    fontSize: 16, outline: "none", fontFamily: "inherit",
-    boxSizing: "border-box", ...extra
+    width:"100%", padding:"14px 16px",
+    border:`2px solid ${BRAND.color.light}`, borderRadius:12,
+    fontSize:16, outline:"none", fontFamily:"inherit",
+    boxSizing:"border-box", ...extra
   });
 
   return (
-    <div className="fade-in" style={{ minHeight: "100vh", background: "white", display: "flex", flexDirection: "column", padding: "52px 24px 32px" }}>
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <svg width="64" height="64" viewBox="0 0 80 80" fill="none" style={{ marginBottom: 12 }}>
+    <div className="fade-in" style={{ minHeight:"100vh", background:"white", display:"flex", flexDirection:"column", padding:"52px 24px 32px" }}>
+      <div style={{ textAlign:"center", marginBottom:40 }}>
+        <svg width="64" height="64" viewBox="0 0 80 80" fill="none" style={{ marginBottom:12 }}>
           <rect width="80" height="80" rx="20" fill="#0D7E6A"/>
           <path d="M8 40 L22 40 L26 30 L30 52 L34 18 L38 58 L42 40 L72 40" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <h1 style={{ fontSize: 28, fontWeight: 900, color: BRAND.color.text, letterSpacing: 2 }}>AFYA</h1>
-        <p style={{ color: BRAND.color.muted, fontSize: 14, marginTop: 4 }}>Africa's AI-powered health companion</p>
+        <h1 style={{ fontSize:28, fontWeight:900, color:BRAND.color.text, letterSpacing:2 }}>AFYA</h1>
+        <p style={{ color:BRAND.color.muted, fontSize:14, marginTop:4 }}>Africa's AI-powered health companion</p>
       </div>
 
-      {/* Mode toggle */}
-      <div style={{ display: "flex", background: BRAND.color.light, borderRadius: 12, padding: 4, marginBottom: 28 }}>
+      <div style={{ display:"flex", background:BRAND.color.light, borderRadius:12, padding:4, marginBottom:28 }}>
         {["login","signup"].map(m => (
           <button key={m} onClick={() => { setMode(m); setError(null); setMessage(null); }} style={{
-            flex: 1, padding: "10px", borderRadius: 9, border: "none", cursor: "pointer",
-            background: mode === m ? "white" : "transparent",
-            color: mode === m ? BRAND.color.primary : BRAND.color.muted,
-            fontWeight: mode === m ? 700 : 500, fontSize: 15,
-            boxShadow: mode === m ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
-            fontFamily: "inherit", transition: "all 0.2s",
+            flex:1, padding:"10px", borderRadius:9, border:"none", cursor:"pointer",
+            background: mode===m ? "white" : "transparent",
+            color: mode===m ? BRAND.color.primary : BRAND.color.muted,
+            fontWeight: mode===m ? 700 : 500, fontSize:15,
+            boxShadow: mode===m ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
+            fontFamily:"inherit", transition:"all 0.2s",
           }}>
             {m === "login" ? "Log in" : "Sign up"}
           </button>
         ))}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
-        <input
-          type="email" placeholder="Email address" value={email}
-          onChange={e => setEmail(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && submit()}
-          style={inp()} autoComplete="email"
-        />
-        <input
-          type="password" placeholder="Password (min 6 chars)" value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && submit()}
-          style={inp()} autoComplete={mode === "signup" ? "new-password" : "current-password"}
-        />
+      <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:20 }}>
+        <input type="email" placeholder="Email address" value={email}
+          onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key==="Enter" && submit()}
+          style={inp()} autoComplete="email"/>
+        <input type="password" placeholder="Password (min 6 chars)" value={password}
+          onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key==="Enter" && submit()}
+          style={inp()} autoComplete={mode==="signup" ? "new-password" : "current-password"}/>
       </div>
 
-      {error   && <div style={{ background: "#FFF0F0", border: "1px solid #FFD0D0", borderRadius: 10, padding: "12px 16px", color: BRAND.color.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
-      {message && <div style={{ background: BRAND.color.light, border: `1px solid ${BRAND.color.primary}`, borderRadius: 10, padding: "12px 16px", color: BRAND.color.primary, fontSize: 13, marginBottom: 16 }}>{message}</div>}
+      {error   && <div style={{ background:"#FFF0F0", border:"1px solid #FFD0D0", borderRadius:10, padding:"12px 16px", color:BRAND.color.danger, fontSize:13, marginBottom:16 }}>{error}</div>}
+      {message && <div style={{ background:BRAND.color.light, border:`1px solid ${BRAND.color.primary}`, borderRadius:10, padding:"12px 16px", color:BRAND.color.primary, fontSize:13, marginBottom:16 }}>{message}</div>}
 
-      <button
-        onClick={submit}
-        disabled={loading || !email.trim() || !password.trim()}
-        style={{
-          width: "100%", padding: "16px", borderRadius: 14, border: "none", cursor: "pointer",
-          background: (!loading && email.trim() && password.trim()) ? BRAND.color.primary : BRAND.color.light,
-          color: (!loading && email.trim() && password.trim()) ? "white" : BRAND.color.muted,
-          fontSize: 16, fontWeight: 700, fontFamily: "inherit",
-        }}
-      >
-        {loading ? "Please wait…" : mode === "login" ? "Log in →" : "Create account →"}
+      <button onClick={submit} disabled={loading || !email.trim() || !password.trim()} style={{
+        width:"100%", padding:"16px", borderRadius:14, border:"none", cursor:"pointer",
+        background: (!loading && email.trim() && password.trim()) ? BRAND.color.primary : BRAND.color.light,
+        color: (!loading && email.trim() && password.trim()) ? "white" : BRAND.color.muted,
+        fontSize:16, fontWeight:700, fontFamily:"inherit",
+      }}>
+        {loading ? "Please wait…" : mode==="login" ? "Log in →" : "Create account →"}
       </button>
 
-      <p style={{ textAlign: "center", color: BRAND.color.muted, fontSize: 12, marginTop: 24, lineHeight: 1.6 }}>
+      <p style={{ textAlign:"center", color:BRAND.color.muted, fontSize:12, marginTop:24, lineHeight:1.6 }}>
         By continuing you agree to AFYA's{" "}
-        <a href="/terms.html" style={{ color: BRAND.color.primary }}>Terms</a> and{" "}
-        <a href="/privacy.html" style={{ color: BRAND.color.primary }}>Privacy Policy</a>.
+        <a href="/terms.html" style={{ color:BRAND.color.primary }}>Terms</a> and{" "}
+        <a href="/privacy.html" style={{ color:BRAND.color.primary }}>Privacy Policy</a>.
       </p>
+    </div>
+  );
+}
+
+// ─── UPGRADE MODAL ────────────────────────────────────────────────────────
+function UpgradeModal({ onUpgrade, onClose, loading }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, display:"flex", alignItems:"flex-end", justifyContent:"center" }}
+      onClick={onClose}>
+      <div className="slide-up" style={{ background:"white", borderRadius:"24px 24px 0 0", padding:"32px 24px 40px", width:"100%", maxWidth:430 }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ textAlign:"center", marginBottom:28 }}>
+          <div style={{ fontSize:48, marginBottom:8 }}>⭐</div>
+          <h2 style={{ fontSize:24, fontWeight:900, color:BRAND.color.text }}>AFYA Premium</h2>
+          <p style={{ color:BRAND.color.muted, fontSize:14, marginTop:6, lineHeight:1.6 }}>
+            Unlimited AI health guidance, full medication tracker, and weekly health reports.
+          </p>
+        </div>
+
+        <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:24 }}>
+          {[
+            { icon:"💬", text:"Unlimited AI chats per day" },
+            { icon:"💊", text:"Add & track custom medications" },
+            { icon:"📊", text:"Weekly personalised health reports" },
+            { icon:"🔔", text:"Smart medication reminders" },
+          ].map(f => (
+            <div key={f.text} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:BRAND.color.light, borderRadius:12 }}>
+              <span style={{ fontSize:20 }}>{f.icon}</span>
+              <span style={{ fontSize:14, fontWeight:500 }}>{f.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+          <button onClick={() => onUpgrade("monthly")} disabled={loading} style={{
+            flex:1, padding:"16px 8px", borderRadius:14, border:`2px solid ${BRAND.color.primary}`,
+            background: loading ? BRAND.color.light : BRAND.color.primary,
+            color:"white", cursor:"pointer", fontFamily:"inherit",
+          }}>
+            <p style={{ fontWeight:900, fontSize:18 }}>₦2,500</p>
+            <p style={{ fontSize:12, opacity:0.9, marginTop:2 }}>per month</p>
+          </button>
+          <button onClick={() => onUpgrade("annual")} disabled={loading} style={{
+            flex:1, padding:"16px 8px", borderRadius:14, border:`2px solid ${BRAND.color.accent}`,
+            background: loading ? BRAND.color.light : BRAND.color.accent,
+            color:"white", cursor:"pointer", fontFamily:"inherit", position:"relative",
+          }}>
+            <div style={{ position:"absolute", top:-10, right:8, background:BRAND.color.danger, color:"white", fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:20 }}>SAVE 17%</div>
+            <p style={{ fontWeight:900, fontSize:18 }}>₦25,000</p>
+            <p style={{ fontSize:12, opacity:0.9, marginTop:2 }}>per year</p>
+          </button>
+        </div>
+
+        <button onClick={onClose} style={{ width:"100%", padding:"12px", borderRadius:12, border:"none", background:"none", color:BRAND.color.muted, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+          Maybe later
+        </button>
+      </div>
     </div>
   );
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────────────
 function Onboarding({ onComplete }) {
-  const [step, setStep] = useState(0);
-  const [profile, setProfile] = useState({ name: "", age: "", condition: "", weeks: "" });
+  const [step, setStep]             = useState(0);
+  const [profile, setProfile]       = useState({ name:"", age:"", condition:"", weeks:"" });
   const [promoInput, setPromoInput] = useState("");
   const [promoStatus, setPromoStatus] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]         = useState(false);
 
   const DEMO_PROMO_REGISTRY = {
-    "ADAE-ZSF4": { owner: "Adaeze", used: false },
-    "FATI-MA12": { owner: "Fatima", used: false },
-    "CHID-I789": { owner: "Chidi",  used: false },
+    "ADAE-ZSF4": { owner:"Adaeze", used:false },
+    "FATI-MA12": { owner:"Fatima", used:false },
+    "CHID-I789": { owner:"Chidi",  used:false },
   };
 
   const validatePromo = (code) => {
@@ -201,21 +249,21 @@ function Onboarding({ onComplete }) {
 
   const steps = [
     {
-      title: "Welcome to AFYA", subtitle: "Africa's preventive health companion",
+      title:"Welcome to AFYA", subtitle:"Africa's preventive health companion",
       body: (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ margin: "24px 0" }}>
+        <div style={{ textAlign:"center" }}>
+          <div style={{ margin:"24px 0" }}>
             <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
               <rect width="80" height="80" rx="20" fill="#0D7E6A"/>
               <path d="M8 40 L22 40 L26 30 L30 52 L34 18 L38 58 L42 40 L72 40" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <p style={{ color: BRAND.color.muted, lineHeight: 1.6 }}>Powered by AI. Swahili for "health". Built for Africa. Designed to keep you healthy — before you get sick.</p>
-          <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ color:BRAND.color.muted, lineHeight:1.6 }}>Powered by AI. Swahili for "health". Built for Africa. Designed to keep you healthy — before you get sick.</p>
+          <div style={{ marginTop:32, display:"flex", flexDirection:"column", gap:12 }}>
             {["Chronic disease management","Maternal health support","Daily medication reminders","AI health guidance — 24/7"].map(f => (
-              <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, background: BRAND.color.light, borderRadius: 10, padding: "10px 16px" }}>
-                <span style={{ color: BRAND.color.primary }}>✓</span>
-                <span style={{ fontSize: 14 }}>{f}</span>
+              <div key={f} style={{ display:"flex", alignItems:"center", gap:10, background:BRAND.color.light, borderRadius:10, padding:"10px 16px" }}>
+                <span style={{ color:BRAND.color.primary }}>✓</span>
+                <span style={{ fontSize:14 }}>{f}</span>
               </div>
             ))}
           </div>
@@ -223,36 +271,36 @@ function Onboarding({ onComplete }) {
       ),
     },
     {
-      title: "What's your name?", subtitle: "Let's personalise your experience",
+      title:"What's your name?", subtitle:"Let's personalise your experience",
       body: (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input placeholder="Enter your first name" value={profile.name} onChange={e => setProfile(p => ({...p, name: e.target.value}))}
-            style={{ width: "100%", padding: "14px 16px", border: `2px solid ${BRAND.color.light}`, borderRadius: 12, fontSize: 16, outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}/>
-          <input placeholder="Your age" type="number" value={profile.age} onChange={e => setProfile(p => ({...p, age: e.target.value}))}
-            style={{ width: "100%", padding: "14px 16px", border: `2px solid ${BRAND.color.light}`, borderRadius: 12, fontSize: 16, outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}/>
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <input placeholder="Enter your first name" value={profile.name} onChange={e => setProfile(p => ({...p, name:e.target.value}))}
+            style={{ width:"100%", padding:"14px 16px", border:`2px solid ${BRAND.color.light}`, borderRadius:12, fontSize:16, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}/>
+          <input placeholder="Your age" type="number" value={profile.age} onChange={e => setProfile(p => ({...p, age:e.target.value}))}
+            style={{ width:"100%", padding:"14px 16px", border:`2px solid ${BRAND.color.light}`, borderRadius:12, fontSize:16, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}/>
         </div>
       ),
     },
     {
-      title: "What brings you here?", subtitle: "We'll personalise your health plan",
+      title:"What brings you here?", subtitle:"We'll personalise your health plan",
       body: (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
           {[
-            { key: "diabetes",    label: "Diabetes management",      icon: "💉", desc: "Track glucose, medication, diet" },
-            { key: "hypertension",label: "High blood pressure",       icon: "❤️", desc: "Monitor BP, medication, stress" },
-            { key: "maternal",    label: "Pregnancy & maternal health",icon: "🤰", desc: "ANC tracking, nutrition, baby milestones" },
-            { key: "wellness",    label: "General wellness",          icon: "🏃", desc: "Prevention, habits, healthy lifestyle" },
+            { key:"diabetes",    label:"Diabetes management",       icon:"💉", desc:"Track glucose, medication, diet" },
+            { key:"hypertension",label:"High blood pressure",        icon:"❤️", desc:"Monitor BP, medication, stress" },
+            { key:"maternal",    label:"Pregnancy & maternal health", icon:"🤰", desc:"ANC tracking, nutrition, baby milestones" },
+            { key:"wellness",    label:"General wellness",           icon:"🏃", desc:"Prevention, habits, healthy lifestyle" },
           ].map(c => (
-            <button key={c.key} onClick={() => setProfile(p => ({...p, condition: c.key}))} style={{
-              display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
-              border: `2px solid ${profile.condition === c.key ? BRAND.color.primary : BRAND.color.light}`,
-              borderRadius: 12, background: profile.condition === c.key ? BRAND.color.light : "white",
-              cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+            <button key={c.key} onClick={() => setProfile(p => ({...p, condition:c.key}))} style={{
+              display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
+              border:`2px solid ${profile.condition===c.key ? BRAND.color.primary : BRAND.color.light}`,
+              borderRadius:12, background: profile.condition===c.key ? BRAND.color.light : "white",
+              cursor:"pointer", textAlign:"left", fontFamily:"inherit",
             }}>
-              <span style={{ fontSize: 28 }}>{c.icon}</span>
+              <span style={{ fontSize:28 }}>{c.icon}</span>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{c.label}</div>
-                <div style={{ fontSize: 12, color: BRAND.color.muted }}>{c.desc}</div>
+                <div style={{ fontWeight:600, fontSize:14 }}>{c.label}</div>
+                <div style={{ fontSize:12, color:BRAND.color.muted }}>{c.desc}</div>
               </div>
             </button>
           ))}
@@ -260,47 +308,47 @@ function Onboarding({ onComplete }) {
       ),
     },
     {
-      title: "Got a friend's promo code?", subtitle: "You'll both get 1 month of Premium free",
+      title:"Got a friend's promo code?", subtitle:"You'll both get 1 month of Premium free",
       body: (
         <div>
-          <div style={{ background: BRAND.color.light, borderRadius: 16, padding: "16px 20px", marginBottom: 20 }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <span style={{ fontSize: 28 }}>🎁</span>
-              <div style={{ fontSize: 13, color: BRAND.color.text, lineHeight: 1.65 }}>
+          <div style={{ background:BRAND.color.light, borderRadius:16, padding:"16px 20px", marginBottom:20 }}>
+            <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+              <span style={{ fontSize:28 }}>🎁</span>
+              <div style={{ fontSize:13, color:BRAND.color.text, lineHeight:1.65 }}>
                 If a friend shared their AFYA code, enter it below.<br/>
                 <strong>You get 1 month free. They get 1 month free.</strong>
               </div>
             </div>
           </div>
-          <div style={{ position: "relative" }}>
+          <div style={{ position:"relative" }}>
             <input placeholder="e.g. ADAE-ZSF4" value={promoInput}
               onChange={e => { setPromoInput(e.target.value.toUpperCase()); validatePromo(e.target.value); }}
-              style={{ width: "100%", padding: "14px 44px 14px 16px",
-                border: `2px solid ${promoStatus === "valid" ? BRAND.color.primary : (promoStatus === "invalid" || promoStatus === "used") ? BRAND.color.danger : BRAND.color.light}`,
-                borderRadius: 12, fontSize: 18, fontWeight: 700, letterSpacing: 2, outline: "none", textAlign: "center",
-                boxSizing: "border-box", background: promoStatus === "valid" ? BRAND.color.light : "white", fontFamily: "inherit" }}/>
-            {promoStatus === "valid" && <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 20 }}>✅</span>}
-            {(promoStatus === "invalid" || promoStatus === "used") && <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 20 }}>❌</span>}
+              style={{ width:"100%", padding:"14px 44px 14px 16px",
+                border:`2px solid ${promoStatus==="valid" ? BRAND.color.primary : (promoStatus==="invalid"||promoStatus==="used") ? BRAND.color.danger : BRAND.color.light}`,
+                borderRadius:12, fontSize:18, fontWeight:700, letterSpacing:2, outline:"none", textAlign:"center",
+                boxSizing:"border-box", background: promoStatus==="valid" ? BRAND.color.light : "white", fontFamily:"inherit" }}/>
+            {promoStatus==="valid" && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>✅</span>}
+            {(promoStatus==="invalid"||promoStatus==="used") && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>❌</span>}
           </div>
-          {promoStatus === "valid" && <div style={{ marginTop: 12, background: BRAND.color.light, borderRadius: 10, padding: "12px 16px", color: BRAND.color.primary, fontWeight: 600, fontSize: 13 }}>🎉 Valid! You'll both get 1 month of Premium free after sign-up.</div>}
-          {promoStatus === "invalid" && <div style={{ marginTop: 12, background: "#FFF0F0", borderRadius: 10, padding: "12px 16px", color: BRAND.color.danger, fontSize: 13 }}>That code doesn't seem right. Double-check and try again, or skip.</div>}
-          {promoStatus === "used" && <div style={{ marginTop: 12, background: "#FFF0F0", borderRadius: 10, padding: "12px 16px", color: BRAND.color.danger, fontSize: 13 }}>This code has already been used.</div>}
-          <p style={{ textAlign: "center", color: BRAND.color.muted, marginTop: 20, fontSize: 13 }}>No code? No problem — skip this step.</p>
+          {promoStatus==="valid" && <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:10, padding:"12px 16px", color:BRAND.color.primary, fontWeight:600, fontSize:13 }}>🎉 Valid! You'll both get 1 month of Premium free after sign-up.</div>}
+          {promoStatus==="invalid" && <div style={{ marginTop:12, background:"#FFF0F0", borderRadius:10, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>That code doesn't seem right. Double-check and try again, or skip.</div>}
+          {promoStatus==="used" && <div style={{ marginTop:12, background:"#FFF0F0", borderRadius:10, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>This code has already been used.</div>}
+          <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:20, fontSize:13 }}>No code? No problem — skip this step.</p>
         </div>
       ),
     },
-    ...(profile.condition === "maternal" ? [{
-      title: "How many weeks pregnant?", subtitle: "We'll track your milestones",
+    ...(profile.condition==="maternal" ? [{
+      title:"How many weeks pregnant?", subtitle:"We'll track your milestones",
       body: (
         <div>
-          <input placeholder="e.g. 14" type="number" value={profile.weeks} onChange={e => setProfile(p => ({...p, weeks: e.target.value}))}
-            style={{ width: "100%", padding: "14px 16px", border: `2px solid ${BRAND.color.light}`, borderRadius: 12, fontSize: 24, fontWeight: 700, outline: "none", textAlign: "center", boxSizing: "border-box", fontFamily: "inherit" }}/>
-          <p style={{ textAlign: "center", color: BRAND.color.muted, marginTop: 8, fontSize: 13 }}>weeks pregnant</p>
+          <input placeholder="e.g. 14" type="number" value={profile.weeks} onChange={e => setProfile(p => ({...p, weeks:e.target.value}))}
+            style={{ width:"100%", padding:"14px 16px", border:`2px solid ${BRAND.color.light}`, borderRadius:12, fontSize:24, fontWeight:700, outline:"none", textAlign:"center", boxSizing:"border-box", fontFamily:"inherit" }}/>
+          <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:8, fontSize:13 }}>weeks pregnant</p>
           {profile.weeks && (
-            <div style={{ marginTop: 20, background: BRAND.color.light, borderRadius: 12, padding: 16, fontSize: 13, color: BRAND.color.text, lineHeight: 1.6 }}>
-              {parseInt(profile.weeks) <= 12  ? "🤰 First trimester — focus on folic acid and booking your first ANC visit." : ""}
-              {parseInt(profile.weeks) > 12 && parseInt(profile.weeks) <= 27 ? "🌸 Second trimester — energy is returning! Time for anatomy scan and iron supplements." : ""}
-              {parseInt(profile.weeks) > 27   ? "👶 Third trimester — baby is growing fast. Prepare your birth plan and hospital bag." : ""}
+            <div style={{ marginTop:20, background:BRAND.color.light, borderRadius:12, padding:16, fontSize:13, color:BRAND.color.text, lineHeight:1.6 }}>
+              {parseInt(profile.weeks)<=12  ? "🤰 First trimester — focus on folic acid and booking your first ANC visit." : ""}
+              {parseInt(profile.weeks)>12 && parseInt(profile.weeks)<=27 ? "🌸 Second trimester — energy is returning! Time for anatomy scan and iron supplements." : ""}
+              {parseInt(profile.weeks)>27   ? "👶 Third trimester — baby is growing fast. Prepare your birth plan and hospital bag." : ""}
             </div>
           )}
         </div>
@@ -308,41 +356,39 @@ function Onboarding({ onComplete }) {
     }] : []),
   ];
 
-  const current  = steps[step];
-  const isPromo  = current.title === "Got a friend's promo code?";
-  const canNext  = step === 0 || (step === 1 && profile.name) || (step === 2 && profile.condition) || isPromo || step >= 3;
+  const current = steps[step];
+  const isPromo = current.title==="Got a friend's promo code?";
+  const canNext = step===0 || (step===1 && profile.name) || (step===2 && profile.condition) || isPromo || step>=3;
 
   const handleNext = async () => {
-    if (step < steps.length - 1) { setStep(s => s + 1); return; }
+    if (step < steps.length-1) { setStep(s => s+1); return; }
     setSaving(true);
-    const appliedPromo = promoStatus === "valid" ? promoInput.trim().toUpperCase() : null;
+    const appliedPromo = promoStatus==="valid" ? promoInput.trim().toUpperCase() : null;
     await onComplete({ ...profile, appliedPromo });
     setSaving(false);
   };
 
   return (
-    <div className="fade-in" style={{ minHeight: "100vh", background: "white", display: "flex", flexDirection: "column", padding: "48px 24px 32px" }}>
-      <div style={{ display: "flex", gap: 6, marginBottom: 32 }}>
-        {steps.map((_,i) => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? BRAND.color.primary : BRAND.color.light }}/>
-        ))}
+    <div className="fade-in" style={{ minHeight:"100vh", background:"white", display:"flex", flexDirection:"column", padding:"48px 24px 32px" }}>
+      <div style={{ display:"flex", gap:6, marginBottom:32 }}>
+        {steps.map((_,i) => <div key={i} style={{ flex:1, height:4, borderRadius:2, background: i<=step ? BRAND.color.primary : BRAND.color.light }}/>)}
       </div>
-      <div style={{ flex: 1 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: BRAND.color.text, marginBottom: 6 }}>{current.title}</h1>
-        <p style={{ color: BRAND.color.muted, marginBottom: 28, fontSize: 14 }}>{current.subtitle}</p>
+      <div style={{ flex:1 }}>
+        <h1 style={{ fontSize:26, fontWeight:800, color:BRAND.color.text, marginBottom:6 }}>{current.title}</h1>
+        <p style={{ color:BRAND.color.muted, marginBottom:28, fontSize:14 }}>{current.subtitle}</p>
         {current.body}
       </div>
-      <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 10 }}>
-        <button onClick={handleNext} disabled={!canNext || saving} style={{
-          width: "100%", padding: "16px", borderRadius: 14, border: "none",
-          background: (canNext && !saving) ? BRAND.color.primary : BRAND.color.light,
-          color: (canNext && !saving) ? "white" : BRAND.color.muted,
-          fontSize: 16, fontWeight: 700, cursor: (canNext && !saving) ? "pointer" : "default", fontFamily: "inherit",
+      <div style={{ marginTop:24, display:"flex", flexDirection:"column", gap:10 }}>
+        <button onClick={handleNext} disabled={!canNext||saving} style={{
+          width:"100%", padding:"16px", borderRadius:14, border:"none",
+          background: (canNext&&!saving) ? BRAND.color.primary : BRAND.color.light,
+          color: (canNext&&!saving) ? "white" : BRAND.color.muted,
+          fontSize:16, fontWeight:700, cursor:(canNext&&!saving)?"pointer":"default", fontFamily:"inherit",
         }}>
-          {saving ? "Saving…" : step < steps.length - 1 ? (isPromo && promoStatus === "valid" ? "Apply & Continue 🎁" : "Continue →") : "Start my health journey"}
+          {saving ? "Saving…" : step<steps.length-1 ? (isPromo&&promoStatus==="valid" ? "Apply & Continue 🎁" : "Continue →") : "Start my health journey"}
         </button>
         {isPromo && (
-          <button onClick={handleNext} style={{ width: "100%", padding: "14px", borderRadius: 14, border: `2px solid ${BRAND.color.light}`, background: "white", color: BRAND.color.muted, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={handleNext} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${BRAND.color.light}`, background:"white", color:BRAND.color.muted, fontSize:14, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
             Skip — I don't have a code
           </button>
         )}
@@ -352,51 +398,51 @@ function Onboarding({ onComplete }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────
-function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer }) {
-  const today = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" });
-  const takenCount = meds.filter(m => m.taken).length;
-  const allMeds = profile.condition === "maternal" ? meds.filter(m => m.condition === "maternal") : meds.filter(m => m.condition !== "maternal");
+function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isPremium, onShowUpgrade }) {
+  const today = new Date().toLocaleDateString("en-NG", { weekday:"long", day:"numeric", month:"long" });
+  const allMeds = profile.condition==="maternal" ? meds.filter(m => m.condition==="maternal") : meds.filter(m => m.condition!=="maternal");
+  const takenCount  = meds.filter(m => m.taken).length;
   const healthScore = Math.round((takenCount / meds.length) * 100);
 
   return (
-    <div style={{ padding: "24px 20px", background: "#F9FCFB", minHeight: "100%" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
         <div>
-          <p style={{ fontSize: 13, color: BRAND.color.muted }}>{today}</p>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: BRAND.color.text }}>Good morning, {profile.name || "Friend"} 👋</h2>
+          <p style={{ fontSize:13, color:BRAND.color.muted }}>{today}</p>
+          <h2 style={{ fontSize:22, fontWeight:800, color:BRAND.color.text }}>Good morning, {profile.name||"Friend"} 👋</h2>
         </div>
-        <div style={{ width: 42, height: 42, borderRadius: 21, background: BRAND.color.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: 16 }}>
-          {(profile.name || "U")[0].toUpperCase()}
+        <div style={{ width:42, height:42, borderRadius:21, background:BRAND.color.primary, display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontWeight:700, fontSize:16 }}>
+          {(profile.name||"U")[0].toUpperCase()}
         </div>
       </div>
 
-      <div style={{ background: `linear-gradient(135deg, ${BRAND.color.primary}, #0A5E50)`, borderRadius: 20, padding: "20px 24px", color: "white", marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background:`linear-gradient(135deg, ${BRAND.color.primary}, #0A5E50)`, borderRadius:20, padding:"20px 24px", color:"white", marginBottom:20 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div>
-            <p style={{ fontSize: 13, opacity: 0.8 }}>Today's Health Score</p>
-            <p style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{healthScore}<span style={{ fontSize: 20 }}>%</span></p>
-            <p style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>
-              {healthScore === 100 ? "Perfect day! All meds taken ✨" : `${meds.length - takenCount} medication${meds.length - takenCount !== 1 ? "s" : ""} pending`}
+            <p style={{ fontSize:13, opacity:0.8 }}>Today's Health Score</p>
+            <p style={{ fontSize:48, fontWeight:900, lineHeight:1 }}>{healthScore}<span style={{ fontSize:20 }}>%</span></p>
+            <p style={{ fontSize:13, opacity:0.8, marginTop:4 }}>
+              {healthScore===100 ? "Perfect day! All meds taken ✨" : `${meds.length-takenCount} medication${meds.length-takenCount!==1?"s":""} pending`}
             </p>
           </div>
-          <div style={{ width: 70, height: 70, borderRadius: 35, border: "4px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>
-            {healthScore === 100 ? "🏆" : "💊"}
+          <div style={{ width:70, height:70, borderRadius:35, border:"4px solid rgba(255,255,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:32 }}>
+            {healthScore===100 ? "🏆" : "💊"}
           </div>
         </div>
-        <div style={{ marginTop: 16, background: "rgba(255,255,255,0.2)", borderRadius: 8, height: 8 }}>
-          <div style={{ width: `${healthScore}%`, background: BRAND.color.accent, borderRadius: 8, height: 8, transition: "width 0.5s ease" }}/>
+        <div style={{ marginTop:16, background:"rgba(255,255,255,0.2)", borderRadius:8, height:8 }}>
+          <div style={{ width:`${healthScore}%`, background:BRAND.color.accent, borderRadius:8, height:8, transition:"width 0.5s ease" }}/>
         </div>
       </div>
 
-      {profile.condition === "maternal" && profile.weeks && (
-        <div style={{ background: "#FFF5F7", border: "1px solid #FFD6E0", borderRadius: 16, padding: "16px 20px", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 28 }}>🤰</span>
+      {profile.condition==="maternal" && profile.weeks && (
+        <div style={{ background:"#FFF5F7", border:"1px solid #FFD6E0", borderRadius:16, padding:"16px 20px", marginBottom:20 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:28 }}>🤰</span>
             <div>
-              <p style={{ fontWeight: 700, fontSize: 15 }}>Week {profile.weeks} of Pregnancy</p>
-              <p style={{ fontSize: 13, color: BRAND.color.muted }}>
-                {parseInt(profile.weeks) <= 12 ? "First Trimester · Baby is the size of a lime" :
-                 parseInt(profile.weeks) <= 27 ? "Second Trimester · Baby can now hear your voice" :
+              <p style={{ fontWeight:700, fontSize:15 }}>Week {profile.weeks} of Pregnancy</p>
+              <p style={{ fontSize:13, color:BRAND.color.muted }}>
+                {parseInt(profile.weeks)<=12 ? "First Trimester · Baby is the size of a lime" :
+                 parseInt(profile.weeks)<=27 ? "Second Trimester · Baby can now hear your voice" :
                  "Third Trimester · Getting ready to meet your baby"}
               </p>
             </div>
@@ -404,204 +450,281 @@ function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer }) {
         </div>
       )}
 
-      <div style={{ marginBottom: 20 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: BRAND.color.text }}>Today's Medications</h3>
+      <div style={{ marginBottom:20 }}>
+        <h3 style={{ fontSize:16, fontWeight:700, marginBottom:12, color:BRAND.color.text }}>Today's Medications</h3>
         {allMeds.map(med => (
-          <div key={med.id} style={{ display: "flex", alignItems: "center", gap: 14, background: "white", borderRadius: 14, padding: "14px 16px", marginBottom: 10, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-            <button onClick={() => onToggleMed(med.id)} style={{ width: 28, height: 28, borderRadius: 14, border: `2px solid ${med.taken ? BRAND.color.primary : "#DDD"}`, background: med.taken ? BRAND.color.primary : "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {med.taken && <span style={{ color: "white", fontSize: 14 }}>✓</span>}
+          <div key={med.id} style={{ display:"flex", alignItems:"center", gap:14, background:"white", borderRadius:14, padding:"14px 16px", marginBottom:10, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+            <button onClick={() => onToggleMed(med.id)} style={{ width:28, height:28, borderRadius:14, border:`2px solid ${med.taken?BRAND.color.primary:"#DDD"}`, background:med.taken?BRAND.color.primary:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              {med.taken && <span style={{ color:"white", fontSize:14 }}>✓</span>}
             </button>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: 600, fontSize: 14, textDecoration: med.taken ? "line-through" : "none", color: med.taken ? BRAND.color.muted : BRAND.color.text }}>{med.name}</p>
-              <p style={{ fontSize: 12, color: BRAND.color.muted }}>🕐 {med.time}</p>
+            <div style={{ flex:1 }}>
+              <p style={{ fontWeight:600, fontSize:14, textDecoration:med.taken?"line-through":"none", color:med.taken?BRAND.color.muted:BRAND.color.text }}>{med.name}</p>
+              <p style={{ fontSize:12, color:BRAND.color.muted }}>🕐 {med.time}</p>
             </div>
-            {!med.taken && <span style={{ fontSize: 11, background: "#FFF3E0", color: "#F5A623", borderRadius: 20, padding: "3px 10px", fontWeight: 600 }}>PENDING</span>}
+            {!med.taken && <span style={{ fontSize:11, background:"#FFF3E0", color:"#F5A623", borderRadius:20, padding:"3px 10px", fontWeight:600 }}>PENDING</span>}
           </div>
         ))}
       </div>
 
-      <div onClick={onGoToRefer} style={{ marginTop: 8, background: "white", borderRadius: 16, padding: "14px 18px", cursor: "pointer", boxShadow: "0 1px 8px rgba(0,0,0,0.06)", border: `1px solid ${BRAND.color.light}`, display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: BRAND.color.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🎁</div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontWeight: 700, fontSize: 14 }}>Your code: <span style={{ color: BRAND.color.primary, letterSpacing: 1 }}>{referralState.myCode}</span></p>
-          <p style={{ fontSize: 12, color: BRAND.color.muted, marginTop: 2 }}>Share it — you both get 1 month free · {referralState.friendsReferred} referred</p>
+      <div onClick={onGoToRefer} style={{ marginBottom:14, background:"white", borderRadius:16, padding:"14px 18px", cursor:"pointer", boxShadow:"0 1px 8px rgba(0,0,0,0.06)", border:`1px solid ${BRAND.color.light}`, display:"flex", alignItems:"center", gap:14 }}>
+        <div style={{ width:44, height:44, borderRadius:12, background:BRAND.color.light, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>🎁</div>
+        <div style={{ flex:1 }}>
+          <p style={{ fontWeight:700, fontSize:14 }}>Your code: <span style={{ color:BRAND.color.primary, letterSpacing:1 }}>{referralState.myCode}</span></p>
+          <p style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>Share it — you both get 1 month free · {referralState.friendsReferred} referred</p>
         </div>
-        <span style={{ fontSize: 18, color: BRAND.color.muted }}>›</span>
+        <span style={{ fontSize:18, color:BRAND.color.muted }}>›</span>
       </div>
 
-      <div style={{ background: `linear-gradient(135deg, ${BRAND.color.accent}, #E8892A)`, borderRadius: 16, padding: "16px 20px", color: "white" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 24 }}>⭐</span>
-          <div>
-            <p style={{ fontWeight: 700, fontSize: 15 }}>Unlock AFYA Premium</p>
-            <p style={{ fontSize: 12, opacity: 0.9 }}>Unlimited AI chats, weekly reports, advanced tracking</p>
+      {!isPremium && (
+        <div style={{ background:`linear-gradient(135deg, ${BRAND.color.accent}, #E8892A)`, borderRadius:16, padding:"16px 20px", color:"white" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:24 }}>⭐</span>
+            <div>
+              <p style={{ fontWeight:700, fontSize:15 }}>Unlock AFYA Premium</p>
+              <p style={{ fontSize:12, opacity:0.9 }}>Unlimited AI chats, weekly reports, advanced tracking</p>
+            </div>
+          </div>
+          <button onClick={onShowUpgrade} style={{ marginTop:12, width:"100%", padding:"10px", borderRadius:10, border:"none", background:"rgba(255,255,255,0.25)", color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+            Upgrade — ₦2,500/month →
+          </button>
+        </div>
+      )}
+
+      {isPremium && (
+        <div style={{ background:`linear-gradient(135deg, ${BRAND.color.primary}, #0A5E50)`, borderRadius:16, padding:"16px 20px", color:"white" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:24 }}>⭐</span>
+            <div>
+              <p style={{ fontWeight:700, fontSize:15 }}>AFYA Premium — Active</p>
+              <p style={{ fontSize:12, opacity:0.9 }}>Unlimited AI chats · Full medication tracker</p>
+            </div>
           </div>
         </div>
-        <button style={{ marginTop: 12, width: "100%", padding: "10px", borderRadius: 10, border: "none", background: "rgba(255,255,255,0.25)", color: "white", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-          Start free trial — ₦2,500/month after
-        </button>
-      </div>
+      )}
     </div>
   );
 }
 
 // ─── AI CHAT ──────────────────────────────────────────────────────────────
-function Chat({ profile }) {
+function Chat({ profile, isPremium, onShowUpgrade }) {
   const [messages, setMessages] = useState(CHAT_INIT);
   const [input, setInput]       = useState("");
   const [typing, setTyping]     = useState(false);
-  const [isPremium]             = useState(false);
   const [msgCount, setMsgCount] = useState(0);
   const endRef = useRef(null);
+  const FREE_LIMIT = 3;
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages, typing]);
 
   const send = async () => {
     if (!input.trim() || typing) return;
-    if (!isPremium && msgCount >= 3) return;
+    if (!isPremium && msgCount >= FREE_LIMIT) return;
     const userMsg = input.trim();
     setInput("");
-    const updatedMessages = [...messages, { role: "user", text: userMsg }];
+    const updatedMessages = [...messages, { role:"user", text:userMsg }];
     setMessages(updatedMessages);
-    setMsgCount(c => c + 1);
+    setMsgCount(c => c+1);
     setTyping(true);
     try {
       const res = await fetch("/.netlify/functions/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages, profile }),
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ messages:updatedMessages, profile }),
       });
       const data = await res.json();
       setTyping(false);
-      setMessages(m => [...m, { role: "ai", text: data.error ? "I'm having a moment — please try again. 💚" : data.reply }]);
+      setMessages(m => [...m, { role:"ai", text: data.error ? "I'm having a moment — please try again. 💚" : data.reply }]);
     } catch {
       setTyping(false);
-      setMessages(m => [...m, { role: "ai", text: "I'm having trouble connecting. Please check your connection and try again. 💚" }]);
+      setMessages(m => [...m, { role:"ai", text:"I'm having trouble connecting. Please check your connection and try again. 💚" }]);
     }
   };
 
-  const freeMsgsLeft = Math.max(0, 3 - msgCount);
+  const freeMsgsLeft = isPremium ? Infinity : Math.max(0, FREE_LIMIT - msgCount);
+  const hitLimit = !isPremium && msgCount >= FREE_LIMIT;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#F9FCFB" }}>
-      <div style={{ background: BRAND.color.primary, padding: "16px 20px", color: "white" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 20, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🤖</div>
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", background:"#F9FCFB" }}>
+      <div style={{ background:BRAND.color.primary, padding:"16px 20px", color:"white" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ width:40, height:40, borderRadius:20, background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>🤖</div>
           <div>
-            <p style={{ fontWeight: 700 }}>AFYA AI</p>
-            <p style={{ fontSize: 12, opacity: 0.8 }}>● Online · Powered by Claude</p>
+            <p style={{ fontWeight:700 }}>AFYA AI</p>
+            <p style={{ fontSize:12, opacity:0.8 }}>● Online · Powered by Claude</p>
           </div>
+          {isPremium && <span style={{ marginLeft:"auto", background:"rgba(255,255,255,0.2)", borderRadius:20, padding:"3px 12px", fontSize:11, fontWeight:700 }}>⭐ PREMIUM</span>}
         </div>
       </div>
 
       {!isPremium && (
-        <div style={{ background: freeMsgsLeft === 0 ? "#FFF5F0" : BRAND.color.light, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${freeMsgsLeft === 0 ? "#FFD6C0" : BRAND.color.light}` }}>
-          <span style={{ fontSize: 16 }}>{freeMsgsLeft === 0 ? "🔒" : "💬"}</span>
-          <span style={{ fontSize: 13, color: freeMsgsLeft === 0 ? "#C05020" : BRAND.color.muted }}>
-            {freeMsgsLeft === 0 ? "Free limit reached. Upgrade to AFYA Premium for unlimited AI chats." : `${freeMsgsLeft} free message${freeMsgsLeft !== 1 ? "s" : ""} remaining today`}
-          </span>
+        <div style={{ background: hitLimit ? "#FFF5F0" : BRAND.color.light, padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:`1px solid ${hitLimit?"#FFD6C0":BRAND.color.light}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:16 }}>{hitLimit ? "🔒" : "💬"}</span>
+            <span style={{ fontSize:13, color: hitLimit ? "#C05020" : BRAND.color.muted }}>
+              {hitLimit ? "Daily limit reached" : `${freeMsgsLeft} free message${freeMsgsLeft!==1?"s":""} left today`}
+            </span>
+          </div>
+          {hitLimit && (
+            <button onClick={onShowUpgrade} style={{ padding:"5px 14px", borderRadius:20, border:"none", background:BRAND.color.accent, color:"white", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              Upgrade ⭐
+            </button>
+          )}
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: "auto", padding: "16px 16px 8px" }}>
-        {messages.map((msg, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", marginBottom: 12 }}>
-            {msg.role === "ai" && <div style={{ width: 30, height: 30, borderRadius: 15, background: BRAND.color.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 8, flexShrink: 0, marginTop: 2 }}>🤖</div>}
-            <div style={{ maxWidth: "75%", padding: "12px 14px",
-              borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-              background: msg.role === "user" ? BRAND.color.primary : "white",
-              color: msg.role === "user" ? "white" : BRAND.color.text,
-              fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap",
-              boxShadow: msg.role === "ai" ? "0 1px 6px rgba(0,0,0,0.08)" : "none",
+      <div style={{ flex:1, overflow:"auto", padding:"16px 16px 8px" }}>
+        {messages.map((msg,i) => (
+          <div key={i} style={{ display:"flex", justifyContent: msg.role==="user"?"flex-end":"flex-start", marginBottom:12 }}>
+            {msg.role==="ai" && <div style={{ width:30, height:30, borderRadius:15, background:BRAND.color.primary, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, marginRight:8, flexShrink:0, marginTop:2 }}>🤖</div>}
+            <div style={{ maxWidth:"75%", padding:"12px 14px",
+              borderRadius: msg.role==="user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+              background: msg.role==="user" ? BRAND.color.primary : "white",
+              color: msg.role==="user" ? "white" : BRAND.color.text,
+              fontSize:14, lineHeight:1.6, whiteSpace:"pre-wrap",
+              boxShadow: msg.role==="ai" ? "0 1px 6px rgba(0,0,0,0.08)" : "none",
             }}>{msg.text}</div>
           </div>
         ))}
         {typing && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 15, background: BRAND.color.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🤖</div>
-            <div style={{ background: "white", borderRadius: "18px 18px 18px 4px", padding: "12px 16px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)" }}>
-              <div style={{ display: "flex", gap: 5 }}>
-                {[0,1,2].map(i => <div key={i} className="typing-dot" style={{ width: 8, height: 8, borderRadius: 4, background: BRAND.color.muted, animationDelay: `${i * 0.2}s` }}/>)}
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+            <div style={{ width:30, height:30, borderRadius:15, background:BRAND.color.primary, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>🤖</div>
+            <div style={{ background:"white", borderRadius:"18px 18px 18px 4px", padding:"12px 16px", boxShadow:"0 1px 6px rgba(0,0,0,0.08)" }}>
+              <div style={{ display:"flex", gap:5 }}>
+                {[0,1,2].map(i => <div key={i} className="typing-dot" style={{ width:8, height:8, borderRadius:4, background:BRAND.color.muted, animationDelay:`${i*0.2}s` }}/>)}
               </div>
             </div>
           </div>
         )}
+
+        {hitLimit && (
+          <div className="fade-in" style={{ background:"white", borderRadius:16, padding:"20px", margin:"8px 0", boxShadow:"0 2px 12px rgba(0,0,0,0.08)", textAlign:"center" }}>
+            <p style={{ fontSize:32, marginBottom:8 }}>⭐</p>
+            <p style={{ fontWeight:700, fontSize:15, marginBottom:6 }}>You've used your 3 free chats today</p>
+            <p style={{ fontSize:13, color:BRAND.color.muted, marginBottom:16 }}>Upgrade to Premium for unlimited daily AI health guidance.</p>
+            <button onClick={onShowUpgrade} style={{ width:"100%", padding:"12px", borderRadius:12, border:"none", background:BRAND.color.accent, color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+              Upgrade to Premium — ₦2,500/month
+            </button>
+          </div>
+        )}
+
         <div ref={endRef}/>
       </div>
 
-      {messages.length === 1 && (
-        <div style={{ padding: "0 16px 8px", display: "flex", gap: 8, overflowX: "auto" }}>
-          {["My head hurts","Check my sugar","Feeling tired", profile.condition === "maternal" ? "How is baby?" : "Blood pressure tips"].map(q => (
-            <button key={q} onClick={() => setInput(q)} style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 20, border: `1px solid ${BRAND.color.light}`, background: "white", fontSize: 12, cursor: "pointer", color: BRAND.color.primary, fontWeight: 500, fontFamily: "inherit" }}>
+      {messages.length===1 && (
+        <div style={{ padding:"0 16px 8px", display:"flex", gap:8, overflowX:"auto" }}>
+          {["My head hurts","Check my sugar","Feeling tired", profile.condition==="maternal" ? "How is baby?" : "Blood pressure tips"].map(q => (
+            <button key={q} onClick={() => setInput(q)} style={{ flexShrink:0, padding:"8px 14px", borderRadius:20, border:`1px solid ${BRAND.color.light}`, background:"white", fontSize:12, cursor:"pointer", color:BRAND.color.primary, fontWeight:500, fontFamily:"inherit" }}>
               {q}
             </button>
           ))}
         </div>
       )}
 
-      <div style={{ padding: "12px 16px 20px", background: "white", borderTop: `1px solid ${BRAND.color.light}` }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
-            placeholder={freeMsgsLeft === 0 && !isPremium ? "Upgrade to continue chatting…" : "Ask AFYA anything about your health…"}
-            disabled={freeMsgsLeft === 0 && !isPremium}
-            style={{ flex: 1, padding: "12px 16px", borderRadius: 24, border: `2px solid ${BRAND.color.light}`, fontSize: 14, outline: "none", background: freeMsgsLeft === 0 && !isPremium ? "#F5F5F5" : "white", fontFamily: "inherit" }}/>
-          <button onClick={send} disabled={!input.trim() || typing || (freeMsgsLeft === 0 && !isPremium)}
-            style={{ width: 44, height: 44, borderRadius: 22, background: input.trim() && !typing && (freeMsgsLeft > 0 || isPremium) ? BRAND.color.primary : BRAND.color.light, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>
-            {typing ? <span style={{ fontSize: 14 }}>⏳</span> : <span style={{ color: "white" }}>→</span>}
+      <div style={{ padding:"12px 16px 20px", background:"white", borderTop:`1px solid ${BRAND.color.light}` }}>
+        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==="Enter" && send()}
+            placeholder={ hitLimit ? "Upgrade to continue chatting…" : "Ask AFYA anything about your health…" }
+            disabled={hitLimit}
+            style={{ flex:1, padding:"12px 16px", borderRadius:24, border:`2px solid ${BRAND.color.light}`, fontSize:14, outline:"none", background: hitLimit ? "#F5F5F5" : "white", fontFamily:"inherit" }}/>
+          <button onClick={send} disabled={!input.trim() || typing || hitLimit}
+            style={{ width:44, height:44, borderRadius:22, background: input.trim()&&!typing&&!hitLimit ? BRAND.color.primary : BRAND.color.light, border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:18 }}>
+            {typing ? <span style={{ fontSize:14 }}>⏳</span> : <span style={{ color:"white" }}>→</span>}
           </button>
         </div>
-        <p style={{ fontSize: 11, color: BRAND.color.muted, textAlign: "center", marginTop: 8 }}>AFYA provides guidance only — not medical diagnosis. Always consult your doctor.</p>
+        <p style={{ fontSize:11, color:BRAND.color.muted, textAlign:"center", marginTop:8 }}>AFYA provides guidance only — not medical diagnosis. Always consult your doctor.</p>
       </div>
     </div>
   );
 }
 
 // ─── MEDICATIONS ──────────────────────────────────────────────────────────
-function Medications({ meds, onToggleMed, profile }) {
-  const relevantMeds = profile.condition === "maternal" ? meds.filter(m => m.condition === "maternal") : meds.filter(m => m.condition !== "maternal");
-  const adherence = Math.round((relevantMeds.filter(m => m.taken).length / Math.max(relevantMeds.length, 1)) * 100);
+function Medications({ meds, onToggleMed, profile, isPremium, onShowUpgrade }) {
+  const [customMeds, setCustomMeds] = useState([]);
+  const [showAdd, setShowAdd]       = useState(false);
+  const [newMed, setNewMed]         = useState({ name:"", time:"08:00" });
+
+  const relevantMeds = profile.condition==="maternal" ? meds.filter(m => m.condition==="maternal") : meds.filter(m => m.condition!=="maternal");
+  const allDisplay   = [...relevantMeds, ...customMeds];
+  const adherence    = Math.round((allDisplay.filter(m => m.taken).length / Math.max(allDisplay.length,1)) * 100);
+
+  const addCustomMed = () => {
+    if (!newMed.name.trim()) return;
+    setCustomMeds(prev => [...prev, { id: Date.now(), name:newMed.name, time:newMed.time, taken:false, condition:"custom" }]);
+    setNewMed({ name:"", time:"08:00" });
+    setShowAdd(false);
+  };
+
   return (
-    <div style={{ padding: "24px 20px", background: "#F9FCFB", minHeight: "100%" }}>
-      <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Medications</h2>
-      <p style={{ fontSize: 14, color: BRAND.color.muted, marginBottom: 20 }}>Tap to mark as taken</p>
-      <div style={{ background: "white", borderRadius: 16, padding: 20, marginBottom: 20, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div>
-            <p style={{ fontWeight: 700, fontSize: 15 }}>7-Day Adherence</p>
-            <p style={{ fontSize: 13, color: BRAND.color.muted }}>Based on your log</p>
+    <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+        <h2 style={{ fontSize:22, fontWeight:800 }}>Medications</h2>
+        {isPremium && (
+          <button onClick={() => setShowAdd(s => !s)} style={{ padding:"8px 16px", borderRadius:20, border:"none", background:BRAND.color.primary, color:"white", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+            + Add
+          </button>
+        )}
+      </div>
+      <p style={{ fontSize:14, color:BRAND.color.muted, marginBottom:20 }}>Tap to mark as taken</p>
+
+      {isPremium && showAdd && (
+        <div className="fade-in" style={{ background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 2px 12px rgba(0,0,0,0.08)" }}>
+          <p style={{ fontWeight:700, marginBottom:12 }}>Add medication</p>
+          <input placeholder="Medication name & dose" value={newMed.name}
+            onChange={e => setNewMed(p => ({...p, name:e.target.value}))}
+            style={{ width:"100%", padding:"12px 14px", border:`2px solid ${BRAND.color.light}`, borderRadius:10, fontSize:14, outline:"none", marginBottom:10, boxSizing:"border-box", fontFamily:"inherit" }}/>
+          <div style={{ display:"flex", gap:10 }}>
+            <input type="time" value={newMed.time}
+              onChange={e => setNewMed(p => ({...p, time:e.target.value}))}
+              style={{ flex:1, padding:"12px 14px", border:`2px solid ${BRAND.color.light}`, borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit" }}/>
+            <button onClick={addCustomMed} style={{ flex:1, padding:"12px", borderRadius:10, border:"none", background:BRAND.color.primary, color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+              Save
+            </button>
           </div>
-          <p style={{ fontSize: 32, fontWeight: 900, color: adherence >= 80 ? BRAND.color.primary : BRAND.color.accent }}>{adherence}%</p>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+      )}
+
+      <div style={{ background:"white", borderRadius:16, padding:20, marginBottom:20, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div>
+            <p style={{ fontWeight:700, fontSize:15 }}>7-Day Adherence</p>
+            <p style={{ fontSize:13, color:BRAND.color.muted }}>Based on your log</p>
+          </div>
+          <p style={{ fontSize:32, fontWeight:900, color: adherence>=80 ? BRAND.color.primary : BRAND.color.accent }}>{adherence}%</p>
+        </div>
+        <div style={{ display:"flex", gap:6 }}>
           {["M","T","W","T","F","S","S"].map((d,i) => (
-            <div key={i} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ height: 40, borderRadius: 6, background: [true,true,true,false,true,false,false][i] ? BRAND.color.primary : BRAND.color.light, marginBottom: 4 }}/>
-              <p style={{ fontSize: 10, color: BRAND.color.muted }}>{d}</p>
+            <div key={i} style={{ flex:1, textAlign:"center" }}>
+              <div style={{ height:40, borderRadius:6, background: [true,true,true,false,true,false,false][i] ? BRAND.color.primary : BRAND.color.light, marginBottom:4 }}/>
+              <p style={{ fontSize:10, color:BRAND.color.muted }}>{d}</p>
             </div>
           ))}
         </div>
       </div>
-      {relevantMeds.map(med => (
-        <div key={med.id} style={{ display: "flex", alignItems: "center", gap: 14, background: "white", borderRadius: 14, padding: "16px", marginBottom: 10, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-          <button onClick={() => onToggleMed(med.id)} style={{ width: 32, height: 32, borderRadius: 16, border: `2px solid ${med.taken ? BRAND.color.primary : "#DDD"}`, background: med.taken ? BRAND.color.primary : "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            {med.taken && <span style={{ color: "white", fontSize: 16 }}>✓</span>}
+
+      {allDisplay.map(med => (
+        <div key={med.id} style={{ display:"flex", alignItems:"center", gap:14, background:"white", borderRadius:14, padding:"16px", marginBottom:10, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+          <button onClick={() => onToggleMed(med.id)} style={{ width:32, height:32, borderRadius:16, border:`2px solid ${med.taken?BRAND.color.primary:"#DDD"}`, background:med.taken?BRAND.color.primary:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            {med.taken && <span style={{ color:"white", fontSize:16 }}>✓</span>}
           </button>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 600, fontSize: 15, textDecoration: med.taken ? "line-through" : "none", color: med.taken ? BRAND.color.muted : BRAND.color.text }}>{med.name}</p>
-            <p style={{ fontSize: 12, color: BRAND.color.muted, marginTop: 2 }}>🕐 {med.time} · {med.condition}</p>
+          <div style={{ flex:1 }}>
+            <p style={{ fontWeight:600, fontSize:15, textDecoration:med.taken?"line-through":"none", color:med.taken?BRAND.color.muted:BRAND.color.text }}>{med.name}</p>
+            <p style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>🕐 {med.time}{med.condition==="custom" ? " · custom" : ""}</p>
           </div>
-          <span style={{ fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 20, background: med.taken ? BRAND.color.light : "#FFF3E0", color: med.taken ? BRAND.color.primary : BRAND.color.accent }}>
+          <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:med.taken?BRAND.color.light:"#FFF3E0", color:med.taken?BRAND.color.primary:BRAND.color.accent }}>
             {med.taken ? "DONE" : "PENDING"}
           </span>
         </div>
       ))}
-      <div style={{ background: BRAND.color.light, borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
-        <span style={{ fontSize: 22 }}>🔒</span>
-        <div>
-          <p style={{ fontWeight: 600, fontSize: 14 }}>Add custom medications</p>
-          <p style={{ fontSize: 12, color: BRAND.color.muted }}>Premium feature — Upgrade to add & track any medication</p>
-        </div>
-      </div>
+
+      {!isPremium && (
+        <button onClick={onShowUpgrade} style={{ width:"100%", background:"white", borderRadius:14, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginTop:8, border:`2px dashed ${BRAND.color.accent}`, cursor:"pointer", fontFamily:"inherit" }}>
+          <span style={{ fontSize:22 }}>🔒</span>
+          <div style={{ textAlign:"left" }}>
+            <p style={{ fontWeight:600, fontSize:14, color:BRAND.color.text }}>Add custom medications</p>
+            <p style={{ fontSize:12, color:BRAND.color.muted }}>Premium feature — tap to upgrade ⭐</p>
+          </div>
+        </button>
+      )}
     </div>
   );
 }
@@ -613,43 +736,43 @@ function ReferFriends({ profile, referralState, onSimulateReferral }) {
   const shareText = `I've been using AFYA to manage my health daily — medication reminders, AI health guidance, and more. Join me and we both get 1 month free! Use my code: ${code}\n\nDownload: https://getafya.co`;
   const copyCode = () => { navigator.clipboard?.writeText(code).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),2000); };
   return (
-    <div style={{ padding: "24px 20px", background: "#F9FCFB", minHeight: "100%" }}>
-      <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Refer & Earn</h2>
-      <p style={{ fontSize: 14, color: BRAND.color.muted, marginBottom: 24 }}>Share your code. You both get 1 month free.</p>
-      <div style={{ background: `linear-gradient(135deg, ${BRAND.color.primary}, #0A5E50)`, borderRadius: 20, padding: "24px 20px", color: "white", marginBottom: 20 }}>
-        <p style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>Your personal promo code</p>
-        <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 14, padding: "16px", textAlign: "center", marginBottom: 16 }}>
-          <p style={{ fontSize: 32, fontWeight: 900, letterSpacing: 4 }}>{code}</p>
+    <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
+      <h2 style={{ fontSize:22, fontWeight:800, marginBottom:4 }}>Refer & Earn</h2>
+      <p style={{ fontSize:14, color:BRAND.color.muted, marginBottom:24 }}>Share your code. You both get 1 month free.</p>
+      <div style={{ background:`linear-gradient(135deg, ${BRAND.color.primary}, #0A5E50)`, borderRadius:20, padding:"24px 20px", color:"white", marginBottom:20 }}>
+        <p style={{ fontSize:13, opacity:0.8, marginBottom:8 }}>Your personal promo code</p>
+        <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:14, padding:"16px", textAlign:"center", marginBottom:16 }}>
+          <p style={{ fontSize:32, fontWeight:900, letterSpacing:4 }}>{code}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={copyCode} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "none", background: copied ? "#27AE8A" : "rgba(255,255,255,0.2)", color: "white", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={copyCode} style={{ flex:1, padding:"12px", borderRadius:12, border:"none", background: copied?"#27AE8A":"rgba(255,255,255,0.2)", color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
             {copied ? "✓ Copied!" : "📋 Copy code"}
           </button>
-          <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`,"_blank")} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "none", background: "#25D366", color: "white", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`,"_blank")} style={{ flex:1, padding:"12px", borderRadius:12, border:"none", background:"#25D366", color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
             💬 WhatsApp
           </button>
         </div>
       </div>
-      <div style={{ background: "white", borderRadius: 16, padding: 20, marginBottom: 20, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-        <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>How it works</p>
+      <div style={{ background:"white", borderRadius:16, padding:20, marginBottom:20, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+        <p style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>How it works</p>
         {[{icon:"📤",title:"Share your code",desc:"Send it via WhatsApp, SMS, or social media."},{icon:"📲",title:"Friend signs up",desc:"They enter your code during onboarding."},{icon:"🎁",title:"Both get 1 month free",desc:"You each get 1 month of Premium automatically."}].map((item,i) => (
-          <div key={i} style={{ display: "flex", gap: 14, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 18, background: BRAND.color.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
-            <div><p style={{ fontWeight: 600, fontSize: 14 }}>{item.title}</p><p style={{ fontSize: 13, color: BRAND.color.muted, marginTop: 2 }}>{item.desc}</p></div>
+          <div key={i} style={{ display:"flex", gap:14, marginBottom:14 }}>
+            <div style={{ width:36, height:36, borderRadius:18, background:BRAND.color.light, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>{item.icon}</div>
+            <div><p style={{ fontWeight:600, fontSize:14 }}>{item.title}</p><p style={{ fontSize:13, color:BRAND.color.muted, marginTop:2 }}>{item.desc}</p></div>
           </div>
         ))}
       </div>
-      <div style={{ background: "white", borderRadius: 16, padding: 20, boxShadow: "0 1px 8px rgba(0,0,0,0.06)", marginBottom: 20 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, textAlign: "center" }}>
+      <div style={{ background:"white", borderRadius:16, padding:20, boxShadow:"0 1px 8px rgba(0,0,0,0.06)", marginBottom:20 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, textAlign:"center" }}>
           {[{value:referralState.friendsReferred,label:"Friends\nreferred",color:BRAND.color.primary},{value:referralState.freeMonthsEarned,label:"Free months\nearned",color:BRAND.color.accent},{value:referralState.freeMonthsEarned>0?`${referralState.freeMonthsEarned}mo`:"—",label:"Premium\ntime left",color:"#6C5CE7"}].map((s,i) => (
-            <div key={i} style={{ background: BRAND.color.light, borderRadius: 12, padding: "14px 8px" }}>
-              <p style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</p>
-              <p style={{ fontSize: 11, color: BRAND.color.muted, marginTop: 4, whiteSpace: "pre-line", lineHeight: 1.4 }}>{s.label}</p>
+            <div key={i} style={{ background:BRAND.color.light, borderRadius:12, padding:"14px 8px" }}>
+              <p style={{ fontSize:26, fontWeight:900, color:s.color }}>{s.value}</p>
+              <p style={{ fontSize:11, color:BRAND.color.muted, marginTop:4, whiteSpace:"pre-line", lineHeight:1.4 }}>{s.label}</p>
             </div>
           ))}
         </div>
       </div>
-      <button onClick={onSimulateReferral} style={{ width: "100%", padding: "14px", borderRadius: 14, border: `2px dashed ${BRAND.color.light}`, background: "white", color: BRAND.color.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+      <button onClick={onSimulateReferral} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px dashed ${BRAND.color.light}`, background:"white", color:BRAND.color.muted, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
         🧪 Prototype: Simulate a friend using your code
       </button>
     </div>
@@ -657,53 +780,58 @@ function ReferFriends({ profile, referralState, onSimulateReferral }) {
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────
-function Profile({ profile, referralState, onSignOut }) {
+function Profile({ profile, referralState, isPremium, onShowUpgrade }) {
   const [signingOut, setSigningOut] = useState(false);
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    await sb.auth.signOut();
-  };
+  const handleSignOut = async () => { setSigningOut(true); await sb.auth.signOut(); };
+
   return (
-    <div style={{ padding: "24px 20px", background: "#F9FCFB", minHeight: "100%" }}>
-      <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 20 }}>My Profile</h2>
-      <div style={{ background: `linear-gradient(135deg, ${BRAND.color.primary}, #0A5E50)`, borderRadius: 20, padding: "24px 20px", color: "white", marginBottom: 20, textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, borderRadius: 32, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 12px" }}>
-          {(profile.name || "U")[0].toUpperCase()}
+    <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
+      <h2 style={{ fontSize:22, fontWeight:800, marginBottom:20 }}>My Profile</h2>
+      <div style={{ background:`linear-gradient(135deg, ${BRAND.color.primary}, #0A5E50)`, borderRadius:20, padding:"24px 20px", color:"white", marginBottom:20, textAlign:"center" }}>
+        <div style={{ width:64, height:64, borderRadius:32, background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, margin:"0 auto 12px" }}>
+          {(profile.name||"U")[0].toUpperCase()}
         </div>
-        <p style={{ fontWeight: 800, fontSize: 20 }}>{profile.name || "Your Name"}</p>
-        <p style={{ opacity: 0.8, fontSize: 13 }}>{profile.age ? `${profile.age} years old` : ""} · Nigeria</p>
-        <span style={{ display: "inline-block", marginTop: 8, background: "rgba(255,255,255,0.2)", borderRadius: 20, padding: "4px 14px", fontSize: 12, fontWeight: 600 }}>FREE PLAN</span>
+        <p style={{ fontWeight:800, fontSize:20 }}>{profile.name||"Your Name"}</p>
+        <p style={{ opacity:0.8, fontSize:13 }}>{profile.age ? `${profile.age} years old` : ""} · Nigeria</p>
+        <span style={{ display:"inline-block", marginTop:8, background: isPremium ? BRAND.color.accent : "rgba(255,255,255,0.2)", borderRadius:20, padding:"4px 14px", fontSize:12, fontWeight:700 }}>
+          {isPremium ? "⭐ PREMIUM" : "FREE PLAN"}
+        </span>
       </div>
-      <div style={{ background: "white", borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Health Profile</h3>
+
+      <div style={{ background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+        <h3 style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>Health Profile</h3>
         {[
-          { label: "Primary Condition", value: {diabetes:"Diabetes",hypertension:"Hypertension",maternal:"Pregnancy",wellness:"General Wellness"}[profile.condition] || "—" },
-          { label: "Plan", value: "Free (3 AI chats/day)" },
-          { label: "Member Since", value: new Date().toLocaleDateString("en-NG",{month:"long",year:"numeric"}) },
-          { label: "Country", value: "Nigeria 🇳🇬" },
+          { label:"Primary Condition", value:{diabetes:"Diabetes",hypertension:"Hypertension",maternal:"Pregnancy",wellness:"General Wellness"}[profile.condition]||"—" },
+          { label:"Plan", value: isPremium ? "Premium ⭐ (Unlimited)" : "Free (3 AI chats/day)" },
+          { label:"Member Since", value: new Date().toLocaleDateString("en-NG",{month:"long",year:"numeric"}) },
+          { label:"Country", value:"Nigeria 🇳🇬" },
         ].map(item => (
-          <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${BRAND.color.light}` }}>
-            <span style={{ fontSize: 14, color: BRAND.color.muted }}>{item.label}</span>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>{item.value}</span>
+          <div key={item.label} style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${BRAND.color.light}` }}>
+            <span style={{ fontSize:14, color:BRAND.color.muted }}>{item.label}</span>
+            <span style={{ fontSize:14, fontWeight:600 }}>{item.value}</span>
           </div>
         ))}
       </div>
-      <div style={{ background: `linear-gradient(135deg, ${BRAND.color.accent}, #D4891E)`, borderRadius: 16, padding: "20px", color: "white", marginBottom: 16 }}>
-        <p style={{ fontWeight: 800, fontSize: 17 }}>⭐ Upgrade to Premium</p>
-        <p style={{ fontSize: 13, opacity: 0.9, marginTop: 4, marginBottom: 16 }}>Unlimited AI chats · Weekly health reports · Advanced medication tracking</p>
-        <div style={{ display: "flex", gap: 8 }}>
-          {[["₦2,500","/ month"],["₦25,000","/ year (save 17%)"]].map(([price,label]) => (
-            <button key={price} style={{ flex: 1, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 10, padding: "10px 8px", color: "white", cursor: "pointer", fontFamily: "inherit" }}>
-              <p style={{ fontWeight: 800, fontSize: 15 }}>{price}</p>
-              <p style={{ fontSize: 11, opacity: 0.85 }}>{label}</p>
-            </button>
-          ))}
+
+      {!isPremium && (
+        <div style={{ background:`linear-gradient(135deg, ${BRAND.color.accent}, #D4891E)`, borderRadius:16, padding:"20px", color:"white", marginBottom:16 }}>
+          <p style={{ fontWeight:800, fontSize:17 }}>⭐ Upgrade to Premium</p>
+          <p style={{ fontSize:13, opacity:0.9, marginTop:4, marginBottom:16 }}>Unlimited AI chats · Full medication tracker · Weekly health reports</p>
+          <div style={{ display:"flex", gap:8 }}>
+            {[["₦2,500","/ month","monthly"],["₦25,000","/ year (save 17%)","annual"]].map(([price,label,plan]) => (
+              <button key={price} onClick={() => onShowUpgrade(plan)} style={{ flex:1, background:"rgba(255,255,255,0.2)", border:"1px solid rgba(255,255,255,0.4)", borderRadius:10, padding:"10px 8px", color:"white", cursor:"pointer", fontFamily:"inherit" }}>
+                <p style={{ fontWeight:800, fontSize:15 }}>{price}</p>
+                <p style={{ fontSize:11, opacity:0.85 }}>{label}</p>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      <button onClick={handleSignOut} disabled={signingOut} style={{ width: "100%", padding: "14px", borderRadius: 14, border: `2px solid #FFD0D0`, background: "white", color: BRAND.color.danger, fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+      )}
+
+      <button onClick={handleSignOut} disabled={signingOut} style={{ width:"100%", padding:"14px", borderRadius:14, border:"2px solid #FFD0D0", background:"white", color:BRAND.color.danger, fontSize:15, fontWeight:600, cursor:"pointer", fontFamily:"inherit", marginBottom:16 }}>
         {signingOut ? "Signing out…" : "Sign out"}
       </button>
-      <p style={{ textAlign: "center", fontSize: 12, color: BRAND.color.muted, marginTop: 16 }}>
+      <p style={{ textAlign:"center", fontSize:12, color:BRAND.color.muted }}>
         AFYA is not a medical device. Always consult your healthcare provider.
       </p>
     </div>
@@ -712,17 +840,18 @@ function Profile({ profile, referralState, onSignOut }) {
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────
 function AfyaApp() {
-  // Auth state
-  const [session, setSession]           = useState(null);
+  const [session, setSession]               = useState(null);
   const [sessionLoading, setSessionLoading] = useState(true);
-  // Profile state
-  const [profile, setProfile]           = useState(null);
+  const [profile, setProfile]               = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [onboarded, setOnboarded]       = useState(false);
-  // App state
-  const [tab, setTab]   = useState("home");
-  const [meds, setMeds] = useState(INITIAL_MEDS);
-  const [referralState, setReferralState] = useState({ myCode: "", friendsReferred: 0, freeMonthsEarned: 0 });
+  const [onboarded, setOnboarded]           = useState(false);
+  const [tab, setTab]                       = useState("home");
+  const [meds, setMeds]                     = useState(INITIAL_MEDS);
+  const [referralState, setReferralState]   = useState({ myCode:"", friendsReferred:0, freeMonthsEarned:0 });
+  const [showUpgrade, setShowUpgrade]       = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  const isPremium = !!(profile?.is_premium);
 
   const loadProfile = useCallback(async (userId) => {
     setProfileLoading(true);
@@ -730,7 +859,7 @@ function AfyaApp() {
     if (data) {
       setProfile(data);
       setReferralState({
-        myCode: data.referral_code || generatePromoCode(data.name),
+        myCode:           data.referral_code || generatePromoCode(data.name),
         friendsReferred:  data.friends_referred   || 0,
         freeMonthsEarned: data.free_months_earned || 0,
       });
@@ -747,19 +876,12 @@ function AfyaApp() {
     });
     const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) {
-        loadProfile(session.user.id);
-        setSessionLoading(false);
-      } else {
-        setProfile(null);
-        setOnboarded(false);
-        setSessionLoading(false);
-      }
+      if (session) { loadProfile(session.user.id); setSessionLoading(false); }
+      else { setProfile(null); setOnboarded(false); setSessionLoading(false); }
     });
     return () => subscription.unsubscribe();
   }, [loadProfile]);
 
-  // Done loading profile → clear session loading
   useEffect(() => {
     if (!profileLoading && session) setSessionLoading(false);
   }, [profileLoading, session]);
@@ -768,23 +890,60 @@ function AfyaApp() {
     const myCode     = generatePromoCode(p.name);
     const bonusMonths = p.appliedPromo ? 1 : 0;
     await sb.from("profiles").upsert({
-      id:                 session.user.id,
-      name:               p.name,
-      age:                p.age,
-      condition:          p.condition,
-      weeks:              p.weeks || null,
-      applied_promo:      p.appliedPromo || null,
-      referral_code:      myCode,
-      friends_referred:   0,
-      free_months_earned: bonusMonths,
+      id: session.user.id, name:p.name, age:p.age, condition:p.condition,
+      weeks:p.weeks||null, applied_promo:p.appliedPromo||null,
+      referral_code:myCode, friends_referred:0, free_months_earned:bonusMonths,
     });
     setProfile(p);
-    setReferralState({ myCode, friendsReferred: 0, freeMonthsEarned: bonusMonths });
+    setReferralState({ myCode, friendsReferred:0, freeMonthsEarned:bonusMonths });
     setOnboarded(true);
   };
 
-  const toggleMed  = (id) => setMeds(prev => prev.map(m => m.id === id ? { ...m, taken: !m.taken } : m));
-  const simulateReferral = () => setReferralState(prev => ({ ...prev, friendsReferred: prev.friendsReferred + 1, freeMonthsEarned: prev.freeMonthsEarned + 1 }));
+  // ── Paystack upgrade ──────────────────────────────────────────────────
+  const openPaystack = (plan) => {
+    setUpgradeLoading(true);
+    const amount = plan==="annual" ? 2500000 : 250000; // kobo
+    try {
+      const handler = window.PaystackPop.setup({
+        key:      PAYSTACK_KEY,
+        email:    session.user.email,
+        amount:   amount,
+        currency: "NGN",
+        ref:      `AFYA-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`,
+        metadata: { user_id:session.user.id, plan },
+        callback: async (response) => {
+          setShowUpgrade(false);
+          try {
+            const res = await fetch("/.netlify/functions/verify-payment", {
+              method:"POST",
+              headers:{ "Content-Type":"application/json" },
+              body: JSON.stringify({ reference:response.reference, userId:session.user.id, plan }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              await loadProfile(session.user.id);
+            }
+          } catch(e) {
+            console.error("Payment verify error:", e);
+          }
+          setUpgradeLoading(false);
+        },
+        onClose: () => { setUpgradeLoading(false); },
+      });
+      handler.openIframe();
+    } catch(e) {
+      console.error("Paystack setup error:", e);
+      setUpgradeLoading(false);
+    }
+  };
+
+  const handleShowUpgrade = (plan) => {
+    if (plan) { openPaystack(plan); }
+    else { setShowUpgrade(true); }
+  };
+
+  const toggleMed         = (id) => setMeds(prev => prev.map(m => m.id===id ? {...m, taken:!m.taken} : m));
+  const simulateReferral  = () => setReferralState(prev => ({...prev, friendsReferred:prev.friendsReferred+1, freeMonthsEarned:prev.freeMonthsEarned+1}));
 
   // ── Render gates ──
   if (sessionLoading) return <LoadingScreen message="Starting AFYA…"/>;
@@ -793,49 +952,54 @@ function AfyaApp() {
   if (!onboarded)     return <Onboarding onComplete={handleOnboardComplete}/>;
 
   const tabs = [
-    { key: "home",    label: "Home",    emoji: "🏠" },
-    { key: "chat",    label: "AFYA AI", emoji: "🤖" },
-    { key: "meds",    label: "Meds",    emoji: "💊" },
-    { key: "refer",   label: "Refer",   emoji: "🎁" },
-    { key: "profile", label: "Profile", emoji: "👤" },
+    { key:"home",    label:"Home",    emoji:"🏠" },
+    { key:"chat",    label:"AFYA AI", emoji:"🤖" },
+    { key:"meds",    label:"Meds",    emoji:"💊" },
+    { key:"refer",   label:"Refer",   emoji:"🎁" },
+    { key:"profile", label:"Profile", emoji:"👤" },
   ];
 
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'DM Sans', -apple-system, sans-serif", background: "white" }}>
-      <div style={{ background: BRAND.color.primary, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ maxWidth:430, margin:"0 auto", height:"100vh", display:"flex", flexDirection:"column", fontFamily:"'DM Sans', -apple-system, sans-serif", background:"white" }}>
+      {showUpgrade && (
+        <UpgradeModal
+          onUpgrade={(plan) => { openPaystack(plan); setShowUpgrade(false); }}
+          onClose={() => setShowUpgrade(false)}
+          loading={upgradeLoading}
+        />
+      )}
+
+      <div style={{ background:BRAND.color.primary, padding:"8px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.18)"/>
             <path d="M3 16 L10 16 L11.5 12 L13 21 L14.5 4 L16 25 L17.5 16 L29 16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ color: "white", fontWeight: 900, fontSize: 18, letterSpacing: 2 }}>AFYA</span>
+          <span style={{ color:"white", fontWeight:900, fontSize:18, letterSpacing:2 }}>AFYA</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {referralState.freeMonthsEarned > 0 && (
-            <span style={{ background: BRAND.color.accent, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: "white" }}>
-              🎁 {referralState.freeMonthsEarned}mo free
-            </span>
-          )}
-          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12 }}>🇳🇬</span>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          {isPremium && <span style={{ background:BRAND.color.accent, borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700, color:"white" }}>⭐ PREMIUM</span>}
+          {!isPremium && referralState.freeMonthsEarned>0 && <span style={{ background:BRAND.color.accent, borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700, color:"white" }}>🎁 {referralState.freeMonthsEarned}mo free</span>}
+          <span style={{ color:"rgba(255,255,255,0.8)", fontSize:12 }}>🇳🇬</span>
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: "auto" }}>
-        {tab === "home"    && <Dashboard profile={profile} meds={meds} onToggleMed={toggleMed} referralState={referralState} onGoToRefer={() => setTab("refer")}/>}
-        {tab === "chat"    && <Chat profile={profile}/>}
-        {tab === "meds"    && <Medications meds={meds} onToggleMed={toggleMed} profile={profile}/>}
-        {tab === "refer"   && <ReferFriends profile={profile} referralState={referralState} onSimulateReferral={simulateReferral}/>}
-        {tab === "profile" && <Profile profile={profile} onSignOut={() => sb.auth.signOut()}/>}
+      <div style={{ flex:1, overflow:"auto" }}>
+        {tab==="home"    && <Dashboard profile={profile} meds={meds} onToggleMed={toggleMed} referralState={referralState} onGoToRefer={() => setTab("refer")} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
+        {tab==="chat"    && <Chat profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
+        {tab==="meds"    && <Medications meds={meds} onToggleMed={toggleMed} profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
+        {tab==="refer"   && <ReferFriends profile={profile} referralState={referralState} onSimulateReferral={simulateReferral}/>}
+        {tab==="profile" && <Profile profile={profile} referralState={referralState} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
       </div>
 
-      <div style={{ background: "white", borderTop: "1px solid #EEF2F0", padding: "8px 0 16px", display: "flex" }}>
+      <div style={{ background:"white", borderTop:"1px solid #EEF2F0", padding:"8px 0 16px", display:"flex" }}>
         {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, border: "none", background: "none", cursor: "pointer", padding: "6px 0", position: "relative", fontFamily: "inherit" }}>
-            <span style={{ fontSize: 18 }}>{t.emoji}</span>
-            <span style={{ fontSize: 10, fontWeight: tab === t.key ? 700 : 400, color: tab === t.key ? BRAND.color.primary : BRAND.color.muted }}>{t.label}</span>
-            {tab === t.key && <div style={{ width: 4, height: 4, borderRadius: 2, background: BRAND.color.primary }}/>}
-            {t.key === "refer" && referralState.friendsReferred > 0 && (
-              <div style={{ position: "absolute", top: 2, right: "20%", width: 16, height: 16, borderRadius: 8, background: BRAND.color.accent, color: "white", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2, border:"none", background:"none", cursor:"pointer", padding:"6px 0", position:"relative", fontFamily:"inherit" }}>
+            <span style={{ fontSize:18 }}>{t.emoji}</span>
+            <span style={{ fontSize:10, fontWeight: tab===t.key?700:400, color: tab===t.key?BRAND.color.primary:BRAND.color.muted }}>{t.label}</span>
+            {tab===t.key && <div style={{ width:4, height:4, borderRadius:2, background:BRAND.color.primary }}/>}
+            {t.key==="refer" && referralState.friendsReferred>0 && (
+              <div style={{ position:"absolute", top:2, right:"20%", width:16, height:16, borderRadius:8, background:BRAND.color.accent, color:"white", fontSize:9, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center" }}>
                 {referralState.friendsReferred}
               </div>
             )}
