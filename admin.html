@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AFYA Admin — Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, 'DM Sans', sans-serif; background:#F0F4F3; color:#0D2B26; min-height:100vh; }
+
+    /* ── Auth overlay ── */
+    #auth-overlay {
+      position:fixed; inset:0; background:#0D7E6A;
+      display:flex; align-items:center; justify-content:center; z-index:100;
+    }
+    #auth-box { background:white; border-radius:20px; padding:40px; width:340px; text-align:center; }
+    #auth-box h1 { font-size:28px; font-weight:900; color:#0D7E6A; margin-bottom:6px; }
+    #auth-box p { color:#6B8C88; font-size:14px; margin-bottom:24px; }
+    #auth-input {
+      width:100%; padding:14px 16px; border:2px solid #E8F5F2; border-radius:12px;
+      font-size:16px; outline:none; margin-bottom:12px;
+      transition:border-color 0.2s;
+    }
+    #auth-input:focus { border-color:#0D7E6A; }
+    #auth-btn {
+      width:100%; padding:14px; background:#0D7E6A; color:white;
+      border:none; border-radius:12px; font-size:16px; font-weight:700;
+      cursor:pointer; transition:opacity 0.2s;
+    }
+    #auth-btn:hover { opacity:0.9; }
+    #auth-error { color:#E05252; font-size:13px; margin-top:8px; }
+
+    /* ── Layout ── */
+    header {
+      background:#0D7E6A; color:white; padding:20px 32px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    header h1 { font-size:22px; font-weight:900; }
+    header span { font-size:13px; opacity:0.75; }
+    #refresh-btn {
+      background:rgba(255,255,255,0.2); border:none; color:white;
+      padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;
+    }
+    #refresh-btn:hover { background:rgba(255,255,255,0.3); }
+    main { max-width:1200px; margin:0 auto; padding:32px 24px; }
+
+    /* ── KPI cards ── */
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:32px; }
+    .kpi-card {
+      background:white; border-radius:16px; padding:20px 24px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    }
+    .kpi-card .label { font-size:12px; color:#6B8C88; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+    .kpi-card .value { font-size:36px; font-weight:900; color:#0D7E6A; margin:6px 0 2px; }
+    .kpi-card .sub   { font-size:12px; color:#6B8C88; }
+
+    /* ── Charts grid ── */
+    .charts-grid { display:grid; grid-template-columns:2fr 1fr; gap:20px; margin-bottom:24px; }
+    @media(max-width:768px) { .charts-grid { grid-template-columns:1fr; } }
+    .chart-card {
+      background:white; border-radius:16px; padding:24px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    }
+    .chart-card h2 { font-size:15px; font-weight:700; margin-bottom:16px; color:#0D2B26; }
+
+    /* ── Events + funnel ── */
+    .bottom-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:24px; }
+    @media(max-width:900px) { .bottom-grid { grid-template-columns:1fr 1fr; } }
+    @media(max-width:600px) { .bottom-grid { grid-template-columns:1fr; } }
+
+    /* ── Table ── */
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:10px 12px; color:#6B8C88; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #E8F5F2; }
+    td { padding:10px 12px; border-bottom:1px solid #F5FAF9; }
+    .badge {
+      display:inline-block; padding:3px 8px; border-radius:100px; font-size:11px; font-weight:600;
+    }
+    .badge.premium { background:#FFF3CD; color:#8A6200; }
+    .badge.free    { background:#E8F5F2; color:#0D7E6A; }
+
+    /* ── Funnel ── */
+    .funnel-item { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #F5FAF9; }
+    .funnel-item:last-child { border-bottom:none; }
+    .funnel-label { font-size:14px; }
+    .funnel-val { font-size:20px; font-weight:700; color:#0D7E6A; }
+
+    /* ── Event list ── */
+    .event-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F5FAF9; }
+    .event-item:last-child { border-bottom:none; }
+    .event-name { font-size:13px; color:#0D2B26; }
+    .event-count { font-size:16px; font-weight:700; color:#0D7E6A; }
+
+    #last-updated { font-size:12px; color:#6B8C88; margin-bottom:24px; }
+    .loading-msg { text-align:center; padding:60px; color:#6B8C88; }
+    .error-msg { text-align:center; padding:60px; color:#E05252; }
+  </style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <h1>🏥 AFYA</h1>
+    <p>Admin Analytics Dashboard</p>
+    <input id="auth-input" type="password" placeholder="Enter admin secret" autocomplete="current-password"/>
+    <button id="auth-btn">Unlock Dashboard</button>
+    <div id="auth-error"></div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>🏥 AFYA Analytics</h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="last-ts">—</span>
+    <button id="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<main id="main-content" style="display:none;">
+  <div id="loading-state" class="loading-msg">Loading analytics…</div>
+  <div id="error-state"   class="error-msg"   style="display:none;"></div>
+  <div id="dashboard"     style="display:none;">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="label">Total Users</div>
+        <div class="value" id="kpi-total">—</div>
+        <div class="sub">All-time signups</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Premium Users</div>
+        <div class="value" id="kpi-premium">—</div>
+        <div class="sub" id="kpi-conv">—% conversion</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Vitals Logged</div>
+        <div class="value" id="kpi-vitals">—</div>
+        <div class="sub">Health readings</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Referrals</div>
+        <div class="value" id="kpi-referrals">—</div>
+        <div class="sub" id="kpi-months">—</div>
+      </div>
+    </div>
+
+    <!-- Signups + DAU charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h2>📈 Daily Signups (last 14 days)</h2>
+        <canvas id="signups-chart" height="100"></canvas>
+      </div>
+      <div class="chart-card">
+        <h2>🍩 Conditions</h2>
+        <canvas id="conditions-chart" height="160"></canvas>
+      </div>
+    </div>
+
+    <!-- DAU chart (full width) -->
+    <div class="chart-card" style="margin-bottom:24px;">
+      <h2>👥 Daily Active Users (last 14 days)</h2>
+      <canvas id="dau-chart" height="60"></canvas>
+    </div>
+
+    <!-- Events + Funnel + Recents -->
+    <div class="bottom-grid">
+
+      <!-- Event counts -->
+      <div class="chart-card">
+        <h2>⚡ Events (last 14 days)</h2>
+        <div id="event-list"></div>
+      </div>
+
+      <!-- Paystack funnel -->
+      <div class="chart-card">
+        <h2>💳 Payment Funnel</h2>
+        <div id="funnel-list"></div>
+      </div>
+
+      <!-- Recent signups -->
+      <div class="chart-card">
+        <h2>🆕 Recent Signups</h2>
+        <table>
+          <thead><tr><th>Date</th><th>Condition</th><th>Plan</th></tr></thead>
+          <tbody id="recents-table"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div><!-- /dashboard -->
+</main>
+
+<script>
+  let adminSecret = "";
+  let signupsChart, conditionsChart, dauChart;
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  document.getElementById("auth-btn").onclick = tryAuth;
+  document.getElementById("auth-input").addEventListener("keydown", e => { if (e.key === "Enter") tryAuth(); });
+
+  function tryAuth() {
+    const val = document.getElementById("auth-input").value.trim();
+    if (!val) return;
+    adminSecret = val;
+    document.getElementById("auth-overlay").style.display = "none";
+    document.getElementById("main-content").style.display = "block";
+    loadData();
+  }
+
+  // ── Data loader ──────────────────────────────────────────────────────────
+  async function loadData() {
+    document.getElementById("loading-state").style.display = "block";
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("error-state").style.display = "none";
+
+    try {
+      const res = await fetch(`/.netlify/functions/get-analytics?secret=${encodeURIComponent(adminSecret)}`, {
+        headers: { "x-admin-secret": adminSecret },
+      });
+      if (res.status === 401) {
+        document.getElementById("loading-state").style.display = "none";
+        document.getElementById("auth-overlay").style.display = "flex";
+        document.getElementById("auth-error").textContent = "Incorrect password.";
+        return;
+      }
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      render(data);
+    } catch (err) {
+      document.getElementById("loading-state").style.display = "none";
+      document.getElementById("error-state").style.display = "block";
+      document.getElementById("error-state").textContent = "Failed to load: " + err.message;
+    }
+  }
+
+  // ── Renderer ─────────────────────────────────────────────────────────────
+  function render(d) {
+    document.getElementById("loading-state").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+
+    // KPIs
+    document.getElementById("kpi-total").textContent     = d.overview.totalUsers;
+    document.getElementById("kpi-premium").textContent   = d.overview.premiumUsers;
+    document.getElementById("kpi-conv").textContent      = `${d.overview.conversionRate}% conversion`;
+    document.getElementById("kpi-vitals").textContent    = d.overview.vitalsLogged;
+    document.getElementById("kpi-referrals").textContent = d.overview.totalReferrals;
+    document.getElementById("kpi-months").textContent    = `${d.overview.freeMonths} free months earned`;
+    document.getElementById("last-ts").textContent       = "Updated: " + new Date(d.generatedAt).toLocaleTimeString();
+
+    // Signups chart
+    const signupDays    = Object.keys(d.signupsByDay).sort();
+    const signupCounts  = signupDays.map(k => d.signupsByDay[k]);
+    if (signupsChart) signupsChart.destroy();
+    signupsChart = new Chart(document.getElementById("signups-chart"), {
+      type: "bar",
+      data: {
+        labels: signupDays.map(d => d.slice(5)), // MM-DD
+        datasets: [{ label:"Signups", data:signupCounts, backgroundColor:"#0D7E6A", borderRadius:6 }],
+      },
+      options: { plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:1}} } },
+    });
+
+    // Conditions doughnut
+    const condLabels = Object.keys(d.conditionBreakdown);
+    const condValues = condLabels.map(k => d.conditionBreakdown[k]);
+    const condColors = ["#0D7E6A","#F5A623","#E05252","#5B9CF6","#A78BFA"];
+    if (conditionsChart) conditionsChart.destroy();
+    conditionsChart = new Chart(document.getElementById("conditions-chart"), {
+      type: "doughnut",
+      data: {
+        labels: condLabels,
+        datasets: [{ data:condValues, backgroundColor:condColors.slice(0,condLabels.length), borderWidth:2 }],
+      },
+      options: { plugins:{ legend:{ position:"bottom", labels:{ font:{size:11} } } }, cutout:"65%" },
+    });
+
+    // DAU chart
+    const dauDays   = d.dauSeries.map(x => x.date.slice(5));
+    const dauCounts = d.dauSeries.map(x => x.dau);
+    if (dauChart) dauChart.destroy();
+    dauChart = new Chart(document.getElementById("dau-chart"), {
+      type: "line",
+      data: {
+        labels: dauDays,
+        datasets: [{
+          label:"DAU", data:dauCounts,
+          borderColor:"#0D7E6A", backgroundColor:"rgba(13,126,106,0.1)",
+          fill:true, tension:0.3, pointRadius:3,
+        }],
+      },
+      options: { plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:1}} } },
+    });
+
+    // Event list
+    const eventOrder = ["app_open","chat_message_sent","vital_logged","onboarding_complete","payment_initiated","payment_complete","referral_applied","weekly_digest_viewed"];
+    const eventLabels = {
+      app_open:"App Opens", chat_message_sent:"Chat Messages",
+      vital_logged:"Vitals Logged", onboarding_complete:"Onboardings",
+      payment_initiated:"Payments Initiated", payment_complete:"Payments Complete",
+      referral_applied:"Referrals Applied", weekly_digest_viewed:"Digest Views",
+    };
+    const el = document.getElementById("event-list");
+    el.innerHTML = "";
+    eventOrder.forEach(k => {
+      const n = d.eventCounts[k] || 0;
+      el.innerHTML += `<div class="event-item"><span class="event-name">${eventLabels[k]||k}</span><span class="event-count">${n}</span></div>`;
+    });
+
+    // Paystack funnel
+    const fl = document.getElementById("funnel-list");
+    const f  = d.paystackFunnel;
+    fl.innerHTML = `
+      <div class="funnel-item"><span class="funnel-label">Upgrade clicked</span><span class="funnel-val">${f.initiated}</span></div>
+      <div class="funnel-item"><span class="funnel-label">Payment complete</span><span class="funnel-val">${f.completed}</span></div>
+      <div class="funnel-item"><span class="funnel-label">Checkout conversion</span><span class="funnel-val">${f.paystackConversion}%</span></div>
+    `;
+
+    // Recent signups
+    const tbody = document.getElementById("recents-table");
+    tbody.innerHTML = "";
+    (d.recentSignups || []).forEach(r => {
+      const date = r.created_at ? r.created_at.slice(0,10) : "—";
+      const plan = r.is_premium
+        ? '<span class="badge premium">Premium</span>'
+        : '<span class="badge free">Free</span>';
+      tbody.innerHTML += `<tr><td>${date}</td><td>${r.condition||"—"}</td><td>${plan}</td></tr>`;
+    });
+  }
+</script>
+</body>
+</html>

@@ -49,6 +49,20 @@ const BRAND = {
   },
 };
 
+// ─── ANALYTICS ───────────────────────────────────────────────────────────
+// Tiny fire-and-forget event tracker → Supabase analytics_events table
+const _sessionId = Math.random().toString(36).slice(2, 10);
+function trackEvent(name, properties = {}, userId = null) {
+  try {
+    sb.from("analytics_events").insert({
+      event_name:  name,
+      user_id:     userId || null,
+      session_id:  _sessionId,
+      properties,
+    }).then(() => {}).catch(() => {}); // silent — never block UX
+  } catch(_) {}
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────
 function generatePromoCode(name) {
   const str = (name || "AFYA").toUpperCase().replace(/[^A-Z]/g, "").slice(0,4).padEnd(4,"X");
@@ -655,6 +669,7 @@ function Chat({ profile, isPremium, onShowUpgrade, vitals, meds }) {
     const updatedMessages = [...messages, { role:"user", text:userMsg }];
     setMessages(updatedMessages);
     setMsgCount(c => c+1);
+    trackEvent("chat_message_sent", { is_premium: isPremium });
     setTyping(true);
     try {
       const res = await fetch("/.netlify/functions/chat", {
@@ -1016,6 +1031,7 @@ function AfyaApp() {
       value2: value2 || null, context: context || null, unit,
       logged_at: new Date().toISOString(),
     });
+    trackEvent("vital_logged", { type, context }, session.user.id);
     await loadVitals(session.user.id);
   };
 
@@ -1041,7 +1057,7 @@ function AfyaApp() {
     });
     const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); setSessionLoading(false); }
+      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); trackEvent("app_open", {}, session.user.id); setSessionLoading(false); }
       else { setProfile(null); setOnboarded(false); setVitals([]); setInsight(null); setSessionLoading(false); }
     });
     return () => subscription.unsubscribe();
@@ -1067,6 +1083,8 @@ function AfyaApp() {
         });
       } catch(e) { console.error("Referral apply error:", e); }
     }
+    // Track onboarding completion
+    trackEvent("onboarding_complete", { condition: p.condition, had_referral: !!p.appliedPromo }, session.user.id);
     // Reload fresh profile from Supabase — picks up is_premium=true if referral was applied
     await loadProfile(session.user.id);
   };
@@ -1074,6 +1092,7 @@ function AfyaApp() {
   // ── Paystack upgrade ──────────────────────────────────────────────────
   const openPaystack = (plan) => {
     setUpgradeLoading(true);
+    trackEvent("payment_initiated", { plan }, session.user.id);
     const amount = plan==="annual" ? 2500000 : 250000; // kobo
     try {
       const handler = window.PaystackPop.setup({
@@ -1093,6 +1112,7 @@ function AfyaApp() {
             });
             const data = await res.json();
             if (data.success) {
+              trackEvent("payment_complete", { plan, reference: response.reference }, session.user.id);
               await loadProfile(session.user.id);
             }
           } catch(e) {
