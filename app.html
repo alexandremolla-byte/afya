@@ -73,11 +73,13 @@ function generatePromoCode(name) {
   return `${str}-${Math.abs(hash).toString(36).toUpperCase().slice(0,4).padEnd(4,"0")}`;
 }
 
-const INITIAL_MEDS = [
-  { id: 1, name: "Metformin 500mg",   time: "08:00", taken: true,  condition: "diabetes" },
-  { id: 2, name: "Amlodipine 5mg",    time: "08:00", taken: false, condition: "hypertension" },
-  { id: 3, name: "Folic Acid 400mcg", time: "12:00", taken: false, condition: "maternal" },
-];
+// Default starter meds seeded on onboarding, keyed by condition
+const DEFAULT_MEDS_BY_CONDITION = {
+  diabetes:     [{ name:"Metformin 500mg",    time:"08:00" }, { name:"Metformin 500mg",    time:"20:00" }],
+  hypertension: [{ name:"Amlodipine 5mg",     time:"08:00" }, { name:"Lisinopril 10mg",    time:"08:00" }],
+  maternal:     [{ name:"Folic Acid 400mcg",  time:"08:00" }, { name:"Iron Supplement",    time:"12:00" }],
+  wellness:     [{ name:"Vitamin D3 1000IU",  time:"08:00" }],
+};
 
 const CHAT_INIT = [{
   role: "ai",
@@ -786,93 +788,114 @@ function Chat({ profile, isPremium, onShowUpgrade, vitals, meds }) {
 }
 
 // ─── MEDICATIONS ──────────────────────────────────────────────────────────
-function Medications({ meds, onToggleMed, profile, isPremium, onShowUpgrade }) {
-  const [customMeds, setCustomMeds] = useState([]);
-  const [showAdd, setShowAdd]       = useState(false);
-  const [newMed, setNewMed]         = useState({ name:"", time:"08:00" });
+function Medications({ meds, medLogs, onToggleMed, onAddMed, profile, isPremium, onShowUpgrade }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newMed, setNewMed]   = useState({ name:"", time:"08:00" });
+  const [saving, setSaving]   = useState(false);
 
-  const relevantMeds = profile.condition==="maternal" ? meds.filter(m => m.condition==="maternal") : meds.filter(m => m.condition!=="maternal");
-  const allDisplay   = [...relevantMeds, ...customMeds];
-  const adherence    = Math.round((allDisplay.filter(m => m.taken).length / Math.max(allDisplay.length,1)) * 100);
+  const today      = new Date().toISOString().slice(0, 10);
+  const adherence  = Math.round((meds.filter(m => m.taken).length / Math.max(meds.length, 1)) * 100);
 
-  const addCustomMed = () => {
-    if (!newMed.name.trim()) return;
-    setCustomMeds(prev => [...prev, { id: Date.now(), name:newMed.name, time:newMed.time, taken:false, condition:"custom" }]);
+  // Build last-7-days adherence chart from medLogs
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayLogs = medLogs.filter(l => l.logged_date === dateStr);
+    const takenCount = dayLogs.filter(l => l.taken).length;
+    return { label: ["Su","Mo","Tu","We","Th","Fr","Sa"][d.getDay()], filled: takenCount > 0, isToday: dateStr === today };
+  });
+
+  // Streak: consecutive days ending today where at least 1 med was taken
+  const streak = (() => {
+    let s = 0;
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const taken = medLogs.some(l => l.logged_date === d && l.taken);
+      if (taken) s++;
+      else break;
+    }
+    return s;
+  })();
+
+  const handleAdd = async () => {
+    if (!newMed.name.trim() || saving) return;
+    setSaving(true);
+    await onAddMed(newMed.name, newMed.time);
     setNewMed({ name:"", time:"08:00" });
     setShowAdd(false);
+    setSaving(false);
   };
 
   return (
     <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
         <h2 style={{ fontSize:22, fontWeight:800 }}>Medications</h2>
-        {isPremium && (
-          <button onClick={() => setShowAdd(s => !s)} style={{ padding:"8px 16px", borderRadius:20, border:"none", background:BRAND.color.primary, color:"white", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-            + Add
-          </button>
-        )}
+        <button onClick={() => setShowAdd(s => !s)} style={{ padding:"8px 16px", borderRadius:20, border:"none", background:BRAND.color.primary, color:"white", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+          + Add
+        </button>
       </div>
       <p style={{ fontSize:14, color:BRAND.color.muted, marginBottom:20 }}>Tap to mark as taken</p>
 
-      {isPremium && showAdd && (
+      {showAdd && (
         <div className="fade-in" style={{ background:"white", borderRadius:16, padding:20, marginBottom:16, boxShadow:"0 2px 12px rgba(0,0,0,0.08)" }}>
           <p style={{ fontWeight:700, marginBottom:12 }}>Add medication</p>
           <input placeholder="Medication name & dose" value={newMed.name}
             onChange={e => setNewMed(p => ({...p, name:e.target.value}))}
+            onKeyDown={e => e.key==="Enter" && handleAdd()}
             style={{ width:"100%", padding:"12px 14px", border:`2px solid ${BRAND.color.light}`, borderRadius:10, fontSize:14, outline:"none", marginBottom:10, boxSizing:"border-box", fontFamily:"inherit" }}/>
           <div style={{ display:"flex", gap:10 }}>
             <input type="time" value={newMed.time}
               onChange={e => setNewMed(p => ({...p, time:e.target.value}))}
               style={{ flex:1, padding:"12px 14px", border:`2px solid ${BRAND.color.light}`, borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit" }}/>
-            <button onClick={addCustomMed} style={{ flex:1, padding:"12px", borderRadius:10, border:"none", background:BRAND.color.primary, color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
-              Save
+            <button onClick={handleAdd} disabled={saving} style={{ flex:1, padding:"12px", borderRadius:10, border:"none", background:BRAND.color.primary, color:"white", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", opacity:saving?0.7:1 }}>
+              {saving ? "Saving…" : "Save"}
             </button>
           </div>
         </div>
       )}
 
+      {/* Streak + 7-day adherence */}
       <div style={{ background:"white", borderRadius:16, padding:20, marginBottom:20, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
           <div>
             <p style={{ fontWeight:700, fontSize:15 }}>7-Day Adherence</p>
-            <p style={{ fontSize:13, color:BRAND.color.muted }}>Based on your log</p>
+            <p style={{ fontSize:13, color:BRAND.color.muted }}>
+              {streak > 0 ? `🔥 ${streak}-day streak` : "Start your streak today"}
+            </p>
           </div>
           <p style={{ fontSize:32, fontWeight:900, color: adherence>=80 ? BRAND.color.primary : BRAND.color.accent }}>{adherence}%</p>
         </div>
         <div style={{ display:"flex", gap:6 }}>
-          {["M","T","W","T","F","S","S"].map((d,i) => (
+          {last7.map((d, i) => (
             <div key={i} style={{ flex:1, textAlign:"center" }}>
-              <div style={{ height:40, borderRadius:6, background: [true,true,true,false,true,false,false][i] ? BRAND.color.primary : BRAND.color.light, marginBottom:4 }}/>
-              <p style={{ fontSize:10, color:BRAND.color.muted }}>{d}</p>
+              <div style={{ height:40, borderRadius:6, background: d.filled ? BRAND.color.primary : BRAND.color.light, marginBottom:4, border: d.isToday ? `2px solid ${BRAND.color.primary}` : "none", opacity: d.filled ? 1 : 0.5 }}/>
+              <p style={{ fontSize:10, color: d.isToday ? BRAND.color.primary : BRAND.color.muted, fontWeight: d.isToday ? 700 : 400 }}>{d.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {allDisplay.map(med => (
+      {meds.length === 0 && (
+        <div style={{ textAlign:"center", padding:"32px 20px", color:BRAND.color.muted, fontSize:14 }}>
+          <p style={{ fontSize:32, marginBottom:8 }}>💊</p>
+          <p>No medications yet. Tap + Add to get started.</p>
+        </div>
+      )}
+
+      {meds.map(med => (
         <div key={med.id} style={{ display:"flex", alignItems:"center", gap:14, background:"white", borderRadius:14, padding:"16px", marginBottom:10, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
           <button onClick={() => onToggleMed(med.id)} style={{ width:32, height:32, borderRadius:16, border:`2px solid ${med.taken?BRAND.color.primary:"#DDD"}`, background:med.taken?BRAND.color.primary:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
             {med.taken && <span style={{ color:"white", fontSize:16 }}>✓</span>}
           </button>
           <div style={{ flex:1 }}>
             <p style={{ fontWeight:600, fontSize:15, textDecoration:med.taken?"line-through":"none", color:med.taken?BRAND.color.muted:BRAND.color.text }}>{med.name}</p>
-            <p style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>🕐 {med.time}{med.condition==="custom" ? " · custom" : ""}</p>
+            <p style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>🕐 {med.time}</p>
           </div>
           <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:med.taken?BRAND.color.light:"#FFF3E0", color:med.taken?BRAND.color.primary:BRAND.color.accent }}>
             {med.taken ? "DONE" : "PENDING"}
           </span>
         </div>
       ))}
-
-      {!isPremium && (
-        <button onClick={() => onShowUpgrade()} style={{ width:"100%", background:"white", borderRadius:14, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginTop:8, border:`2px dashed ${BRAND.color.accent}`, cursor:"pointer", fontFamily:"inherit" }}>
-          <span style={{ fontSize:22 }}>🔒</span>
-          <div style={{ textAlign:"left" }}>
-            <p style={{ fontWeight:600, fontSize:14, color:BRAND.color.text }}>Add custom medications</p>
-            <p style={{ fontSize:12, color:BRAND.color.muted }}>Premium feature — tap to upgrade ⭐</p>
-          </div>
-        </button>
-      )}
     </div>
   );
 }
@@ -994,7 +1017,8 @@ function AfyaApp() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [onboarded, setOnboarded]           = useState(false);
   const [tab, setTab]                       = useState("home");
-  const [meds, setMeds]                     = useState(INITIAL_MEDS);
+  const [meds, setMeds]                     = useState([]);
+  const [medLogs, setMedLogs]               = useState([]); // last 7 days
   const [referralState, setReferralState]   = useState({ myCode:"", friendsReferred:0, freeMonthsEarned:0 });
   const [showUpgrade, setShowUpgrade]         = useState(false);
   const [upgradeLoading, setUpgradeLoading]   = useState(false);
@@ -1026,6 +1050,73 @@ function AfyaApp() {
     if (data) setVitals(data);
   }, []);
 
+  const loadMeds = useCallback(async (userId) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    // Load active medications
+    const { data: medsData } = await sb.from("medications")
+      .select("*").eq("user_id", userId).eq("active", true)
+      .order("created_at", { ascending: true });
+
+    // Load today's logs + last 7 days for adherence chart
+    const { data: logsData } = await sb.from("med_logs")
+      .select("*").eq("user_id", userId)
+      .gte("logged_date", sevenDaysAgo)
+      .order("logged_date", { ascending: false });
+
+    const logs = logsData || [];
+    const todayLogs = logs.filter(l => l.logged_date === today);
+
+    // Merge today's taken status into meds
+    const medsWithStatus = (medsData || []).map(m => ({
+      ...m,
+      taken: todayLogs.some(l => l.medication_id === m.id && l.taken),
+    }));
+
+    setMeds(medsWithStatus);
+    setMedLogs(logs);
+  }, []);
+
+  const toggleMed = async (medId) => {
+    if (!session) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const med = meds.find(m => m.id === medId);
+    if (!med) return;
+    const newTaken = !med.taken;
+
+    // Optimistic update
+    setMeds(prev => prev.map(m => m.id === medId ? { ...m, taken: newTaken } : m));
+
+    // Upsert log for today (unique constraint: medication_id + logged_date)
+    await sb.from("med_logs").upsert({
+      user_id: session.user.id,
+      medication_id: medId,
+      taken: newTaken,
+      logged_date: today,
+      logged_at: new Date().toISOString(),
+    }, { onConflict: "medication_id,logged_date" });
+
+    // Refresh logs for adherence chart
+    await loadMeds(session.user.id);
+  };
+
+  const addMed = async (name, time) => {
+    if (!session || !name.trim()) return;
+    const { data } = await sb.from("medications").insert({
+      user_id: session.user.id, name: name.trim(), time, active: true,
+    }).select().single();
+    if (data) setMeds(prev => [...prev, { ...data, taken: false }]);
+  };
+
+  const seedDefaultMeds = async (userId, condition) => {
+    const defaults = DEFAULT_MEDS_BY_CONDITION[condition] || [];
+    if (!defaults.length) return;
+    await sb.from("medications").insert(
+      defaults.map(m => ({ user_id: userId, name: m.name, time: m.time, condition, active: true }))
+    );
+  };
+
   const logVital = async (type, value, value2, context, unit) => {
     if (!session) return;
     await sb.from("health_logs").insert({
@@ -1054,13 +1145,13 @@ function AfyaApp() {
   useEffect(() => {
     sb.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); }
+      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); loadMeds(session.user.id); }
       else setSessionLoading(false);
     });
     const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); trackEvent("app_open", {}, session.user.id); setSessionLoading(false); }
-      else { setProfile(null); setOnboarded(false); setVitals([]); setInsight(null); setSessionLoading(false); }
+      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); loadMeds(session.user.id); trackEvent("app_open", {}, session.user.id); setSessionLoading(false); }
+      else { setProfile(null); setOnboarded(false); setMeds([]); setMedLogs([]); setVitals([]); setInsight(null); setSessionLoading(false); }
     });
     return () => subscription.unsubscribe();
   }, [loadProfile]);
@@ -1085,10 +1176,13 @@ function AfyaApp() {
         });
       } catch(e) { console.error("Referral apply error:", e); }
     }
+    // Seed default medications for the user's condition
+    await seedDefaultMeds(session.user.id, p.condition);
     // Track onboarding completion
     trackEvent("onboarding_complete", { condition: p.condition, had_referral: !!p.appliedPromo }, session.user.id);
-    // Reload fresh profile from Supabase — picks up is_premium=true if referral was applied
+    // Reload fresh profile + meds from Supabase
     await loadProfile(session.user.id);
+    await loadMeds(session.user.id);
   };
 
   // ── Paystack upgrade ──────────────────────────────────────────────────
@@ -1136,7 +1230,6 @@ function AfyaApp() {
     else { setShowUpgrade(true); }
   };
 
-  const toggleMed         = (id) => setMeds(prev => prev.map(m => m.id===id ? {...m, taken:!m.taken} : m));
   const simulateReferral  = () => setReferralState(prev => ({...prev, friendsReferred:prev.friendsReferred+1, freeMonthsEarned:prev.freeMonthsEarned+1}));
 
   // ── Render gates ──
@@ -1181,7 +1274,7 @@ function AfyaApp() {
       <div style={{ flex:1, overflow:"auto" }}>
         {tab==="home"    && <Dashboard profile={profile} meds={meds} onToggleMed={toggleMed} referralState={referralState} onGoToRefer={() => setTab("refer")} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} logVital={logVital} insight={insight} insightLoading={insightLoading} onRefreshInsight={refreshInsight}/>}
         {tab==="chat"    && <Chat profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} meds={meds}/>}
-        {tab==="meds"    && <Medications meds={meds} onToggleMed={toggleMed} profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
+        {tab==="meds"    && <Medications meds={meds} medLogs={medLogs} onToggleMed={toggleMed} onAddMed={addMed} profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
         {tab==="refer"   && <ReferFriends profile={profile} referralState={referralState} onSimulateReferral={simulateReferral}/>}
         {tab==="profile" && <Profile profile={profile} referralState={referralState} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
       </div>
