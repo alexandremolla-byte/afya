@@ -24,7 +24,8 @@ exports.handler = async (event) => {
       diabetes:    "type 2 diabetes",
       hypertension:"hypertension (high blood pressure)",
       maternal:    `pregnancy (currently ${profile?.weeks || "unknown"} weeks)`,
-      general:     "general health maintenance",
+      wellness:    "general health and wellness",
+      general:     "general health and wellness",
     };
     const conditionLabel = conditionMap[profile?.condition] || "general health";
 

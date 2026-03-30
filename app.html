@@ -230,22 +230,29 @@ function UpgradeModal({ onUpgrade, onClose, loading }) {
 function Onboarding({ onComplete }) {
   const [step, setStep]             = useState(0);
   const [profile, setProfile]       = useState({ name:"", age:"", condition:"", weeks:"" });
-  const [promoInput, setPromoInput] = useState("");
-  const [promoStatus, setPromoStatus] = useState(null);
-  const [saving, setSaving]         = useState(false);
+  const [promoInput, setPromoInput]     = useState("");
+  const [promoStatus, setPromoStatus]   = useState(null); // null | "checking" | "valid" | "invalid"
+  const [referrerName, setReferrerName] = useState("");
+  const [saving, setSaving]             = useState(false);
 
-  const DEMO_PROMO_REGISTRY = {
-    "ADAE-ZSF4": { owner:"Adaeze", used:false },
-    "FATI-MA12": { owner:"Fatima", used:false },
-    "CHID-I789": { owner:"Chidi",  used:false },
-  };
-
-  const validatePromo = (code) => {
-    const clean = code.trim().toUpperCase();
-    if (!clean) { setPromoStatus(null); return; }
-    if (DEMO_PROMO_REGISTRY[clean]) setPromoStatus(DEMO_PROMO_REGISTRY[clean].used ? "used" : "valid");
-    else setPromoStatus("invalid");
-  };
+  // Debounced real-time validation against Supabase via Netlify function
+  useEffect(() => {
+    const clean = promoInput.trim().toUpperCase();
+    if (clean.length < 4) { setPromoStatus(null); setReferrerName(""); return; }
+    setPromoStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const res  = await fetch("/.netlify/functions/apply-referral", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ code: clean, validate: true }),
+        });
+        const data = await res.json();
+        if (data.valid) { setPromoStatus("valid"); setReferrerName(data.referrerName || "your friend"); }
+        else            { setPromoStatus("invalid"); setReferrerName(""); }
+      } catch { setPromoStatus("invalid"); setReferrerName(""); }
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [promoInput]);
 
   const steps = [
     {
@@ -321,18 +328,19 @@ function Onboarding({ onComplete }) {
             </div>
           </div>
           <div style={{ position:"relative" }}>
-            <input placeholder="e.g. ADAE-ZSF4" value={promoInput}
-              onChange={e => { setPromoInput(e.target.value.toUpperCase()); validatePromo(e.target.value); }}
+            <input placeholder="e.g. ALEX-1A2B" value={promoInput}
+              onChange={e => setPromoInput(e.target.value.toUpperCase())}
               style={{ width:"100%", padding:"14px 44px 14px 16px",
-                border:`2px solid ${promoStatus==="valid" ? BRAND.color.primary : (promoStatus==="invalid"||promoStatus==="used") ? BRAND.color.danger : BRAND.color.light}`,
+                border:`2px solid ${promoStatus==="valid" ? BRAND.color.primary : promoStatus==="invalid" ? BRAND.color.danger : BRAND.color.light}`,
                 borderRadius:12, fontSize:18, fontWeight:700, letterSpacing:2, outline:"none", textAlign:"center",
                 boxSizing:"border-box", background: promoStatus==="valid" ? BRAND.color.light : "white", fontFamily:"inherit" }}/>
-            {promoStatus==="valid" && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>✅</span>}
-            {(promoStatus==="invalid"||promoStatus==="used") && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>❌</span>}
+            {promoStatus==="valid"    && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>✅</span>}
+            {promoStatus==="invalid"  && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>❌</span>}
+            {promoStatus==="checking" && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:13, color:BRAND.color.muted }}>⏳</span>}
           </div>
-          {promoStatus==="valid" && <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:10, padding:"12px 16px", color:BRAND.color.primary, fontWeight:600, fontSize:13 }}>🎉 Valid! You'll both get 1 month of Premium free after sign-up.</div>}
-          {promoStatus==="invalid" && <div style={{ marginTop:12, background:"#FFF0F0", borderRadius:10, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>That code doesn't seem right. Double-check and try again, or skip.</div>}
-          {promoStatus==="used" && <div style={{ marginTop:12, background:"#FFF0F0", borderRadius:10, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>This code has already been used.</div>}
+          {promoStatus==="valid"   && <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:10, padding:"12px 16px", color:BRAND.color.primary, fontWeight:600, fontSize:13 }}>🎉 {referrerName} invited you! You'll both get 1 month Premium free.</div>}
+          {promoStatus==="invalid" && <div style={{ marginTop:12, background:"#FFF0F0", borderRadius:10, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>Code not found. Double-check the code or skip this step.</div>}
+          {promoStatus==="checking"&& <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:10, padding:"12px 16px", color:BRAND.color.muted, fontSize:13 }}>Checking your code…</div>}
           <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:20, fontSize:13 }}>No code? No problem — skip this step.</p>
         </div>
       ),
@@ -385,7 +393,7 @@ function Onboarding({ onComplete }) {
           color: (canNext&&!saving) ? "white" : BRAND.color.muted,
           fontSize:16, fontWeight:700, cursor:(canNext&&!saving)?"pointer":"default", fontFamily:"inherit",
         }}>
-          {saving ? "Saving…" : step<steps.length-1 ? (isPromo&&promoStatus==="valid" ? "Apply & Continue 🎁" : "Continue →") : "Start my health journey"}
+          {saving ? "Saving…" : step<steps.length-1 ? (isPromo&&promoStatus==="valid" ? "Apply & Continue 🎁" : isPromo&&promoStatus==="checking" ? "Checking…" : "Continue →") : "Start my health journey"}
         </button>
         {isPromo && (
           <button onClick={handleNext} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${BRAND.color.light}`, background:"white", color:BRAND.color.muted, fontSize:14, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
@@ -410,7 +418,7 @@ function VitalLogCard({ profile, vitals, onLog }) {
     diabetes:    { type:"blood_sugar", label:"Blood Sugar",     unit:"mg/dL", emoji:"🩸", ph:"e.g. 127",  showCtx:true,  ctxOpts:["fasting","after_meal","bedtime"], target:"Target: 80–130 fasting · <180 after meals" },
     hypertension:{ type:"bp",          label:"Blood Pressure",  unit:"mmHg",  emoji:"🫀", ph:"Systolic",  ph2:"Diastolic", showCtx:false, target:"Target: <130/80 mmHg" },
     maternal:    { type:"weight",      label:"Weight",          unit:"kg",    emoji:"⚖️", ph:"e.g. 68",   showCtx:false, target:"Log your weight weekly" },
-    general:     { type:"weight",      label:"Weight",          unit:"kg",    emoji:"⚖️", ph:"e.g. 75",   showCtx:false, target:"Track your weight for general wellness" },
+    wellness:    { type:"weight",      label:"Weight",          unit:"kg",    emoji:"⚖️", ph:"e.g. 75",   showCtx:false, target:"Track your weight for general wellness" },
   };
   const cfg = cfgMap[condition];
   if (!cfg) return null;
@@ -1044,16 +1052,23 @@ function AfyaApp() {
   }, [profileLoading, session]);
 
   const handleOnboardComplete = async (p) => {
-    const myCode     = generatePromoCode(p.name);
-    const bonusMonths = p.appliedPromo ? 1 : 0;
+    const myCode = generatePromoCode(p.name);
     await sb.from("profiles").upsert({
       id: session.user.id, name:p.name, age:p.age, condition:p.condition,
       weeks:p.weeks||null, applied_promo:p.appliedPromo||null,
-      referral_code:myCode, friends_referred:0, free_months_earned:bonusMonths,
+      referral_code:myCode, friends_referred:0, free_months_earned:0,
     });
-    setProfile(p);
-    setReferralState({ myCode, friendsReferred:0, freeMonthsEarned:bonusMonths });
-    setOnboarded(true);
+    // Apply referral code if the user entered a valid one — grants 30 days Premium to both sides
+    if (p.appliedPromo) {
+      try {
+        await fetch("/.netlify/functions/apply-referral", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ code:p.appliedPromo, newUserId:session.user.id, validate:false }),
+        });
+      } catch(e) { console.error("Referral apply error:", e); }
+    }
+    // Reload fresh profile from Supabase — picks up is_premium=true if referral was applied
+    await loadProfile(session.user.id);
   };
 
   // ── Paystack upgrade ──────────────────────────────────────────────────
