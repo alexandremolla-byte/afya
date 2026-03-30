@@ -397,8 +397,127 @@ function Onboarding({ onComplete }) {
   );
 }
 
+// ─── VITAL LOG CARD ───────────────────────────────────────────────────────
+function VitalLogCard({ profile, vitals, onLog }) {
+  const condition = profile?.condition;
+  const [val, setVal]     = useState("");
+  const [val2, setVal2]   = useState("");
+  const [ctx, setCtx]     = useState("fasting");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved]   = useState(false);
+
+  const cfgMap = {
+    diabetes:    { type:"blood_sugar", label:"Blood Sugar",     unit:"mg/dL", emoji:"🩸", ph:"e.g. 127",  showCtx:true,  ctxOpts:["fasting","after_meal","bedtime"], target:"Target: 80–130 fasting · <180 after meals" },
+    hypertension:{ type:"bp",          label:"Blood Pressure",  unit:"mmHg",  emoji:"🫀", ph:"Systolic",  ph2:"Diastolic", showCtx:false, target:"Target: <130/80 mmHg" },
+    maternal:    { type:"weight",      label:"Weight",          unit:"kg",    emoji:"⚖️", ph:"e.g. 68",   showCtx:false, target:"Log your weight weekly" },
+  };
+  const cfg = cfgMap[condition];
+  if (!cfg) return null;
+
+  const lastReading = vitals?.find(v => v.type === cfg.type);
+  const lastText = lastReading
+    ? cfg.type === "bp"
+      ? `Last: ${lastReading.value}/${lastReading.value2} mmHg`
+      : `Last: ${lastReading.value} ${cfg.unit}`
+    : "No readings yet";
+
+  const handleLog = async () => {
+    if (!val.trim()) return;
+    setSaving(true);
+    await onLog(cfg.type, parseFloat(val), cfg.type==="bp" ? parseFloat(val2)||null : null, cfg.showCtx ? ctx : null, cfg.unit);
+    setVal(""); setVal2("");
+    setSaving(false); setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  return (
+    <div style={{ background:"white", borderRadius:16, padding:"16px 18px", marginBottom:16, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:22 }}>{cfg.emoji}</span>
+          <div>
+            <p style={{ fontWeight:700, fontSize:14 }}>{cfg.label}</p>
+            <p style={{ fontSize:11, color:BRAND.color.muted }}>{lastText}</p>
+          </div>
+        </div>
+        {saved && <span style={{ fontSize:12, color:BRAND.color.primary, fontWeight:700 }}>✓ Saved!</span>}
+      </div>
+      <p style={{ fontSize:11, color:BRAND.color.muted, marginBottom:10 }}>{cfg.target}</p>
+      <div style={{ display:"flex", gap:8 }}>
+        <input type="number" value={val} onChange={e => setVal(e.target.value)}
+          placeholder={cfg.ph}
+          style={{ flex:1, padding:"10px 12px", border:`2px solid ${BRAND.color.light}`, borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit" }}/>
+        {cfg.type==="bp" && (
+          <input type="number" value={val2} onChange={e => setVal2(e.target.value)}
+            placeholder={cfg.ph2||""}
+            style={{ flex:1, padding:"10px 12px", border:`2px solid ${BRAND.color.light}`, borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit" }}/>
+        )}
+        {cfg.showCtx && (
+          <select value={ctx} onChange={e => setCtx(e.target.value)}
+            style={{ padding:"10px 8px", border:`2px solid ${BRAND.color.light}`, borderRadius:10, fontSize:11, outline:"none", fontFamily:"inherit", background:"white" }}>
+            {cfg.ctxOpts.map(o => <option key={o} value={o}>{o.replace("_"," ")}</option>)}
+          </select>
+        )}
+        <button onClick={handleLog} disabled={saving || !val.trim()}
+          style={{ padding:"10px 16px", borderRadius:10, border:"none", background: val.trim() ? BRAND.color.primary : BRAND.color.light, color:"white", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
+          {saving ? "…" : "Log"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── WEEKLY DIGEST ────────────────────────────────────────────────────────
+function WeeklyDigest({ isPremium, insight, insightLoading, onRefresh, onShowUpgrade }) {
+  const purple = { bg:"linear-gradient(135deg,#F8F0FF,#EEF0FF)", border:"#C5B3E6", text:"#4A3080", accent:"#7C5CBF", light:"rgba(124,92,191,0.12)" };
+  if (!isPremium) {
+    return (
+      <div style={{ background:purple.bg, borderRadius:16, padding:"16px 18px", marginBottom:16, border:`1px dashed ${purple.border}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+          <span style={{ fontSize:20 }}>✨</span>
+          <p style={{ fontWeight:700, fontSize:14, color:purple.text }}>Weekly AI Health Digest</p>
+          <span style={{ marginLeft:"auto", background:purple.border, color:"white", borderRadius:20, padding:"2px 10px", fontSize:10, fontWeight:700 }}>PREMIUM</span>
+        </div>
+        <p style={{ fontSize:13, color:purple.accent, marginBottom:12, lineHeight:1.5 }}>Your personalised weekly summary — trends, insights, and recommendations based on your actual health data.</p>
+        <button onClick={() => onShowUpgrade()} style={{ width:"100%", padding:"10px", borderRadius:10, border:"none", background:purple.accent, color:"white", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+          Unlock Digest ⭐
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ background:purple.bg, borderRadius:16, padding:"16px 18px", marginBottom:16, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:20 }}>✨</span>
+          <p style={{ fontWeight:700, fontSize:14, color:purple.text }}>Weekly AI Digest</p>
+        </div>
+        <button onClick={onRefresh} disabled={insightLoading}
+          style={{ padding:"5px 12px", borderRadius:20, border:"none", background:purple.light, color:purple.accent, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+          {insightLoading ? "⏳" : "↻ Refresh"}
+        </button>
+      </div>
+      {insightLoading && (
+        <div style={{ textAlign:"center", padding:"16px 0" }}>
+          <div style={{ width:26, height:26, borderRadius:13, border:`3px solid ${purple.border}`, borderTopColor:purple.accent, animation:"spin 0.8s linear infinite", margin:"0 auto 8px" }}/>
+          <p style={{ fontSize:13, color:purple.accent }}>Generating your health digest…</p>
+        </div>
+      )}
+      {!insightLoading && !insight && (
+        <div style={{ textAlign:"center", padding:"8px 0" }}>
+          <p style={{ fontSize:13, color:purple.accent, marginBottom:4 }}>Tap Refresh for your personalised weekly summary.</p>
+          <p style={{ fontSize:11, color:purple.border }}>Uses your logged vitals, medications &amp; health data.</p>
+        </div>
+      )}
+      {!insightLoading && insight && (
+        <p style={{ fontSize:13, color:purple.text, lineHeight:1.7, whiteSpace:"pre-wrap" }}>{insight}</p>
+      )}
+    </div>
+  );
+}
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────
-function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isPremium, onShowUpgrade }) {
+function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isPremium, onShowUpgrade, vitals, logVital, insight, insightLoading, onRefreshInsight }) {
   const today = new Date().toLocaleDateString("en-NG", { weekday:"long", day:"numeric", month:"long" });
   const allMeds = profile.condition==="maternal" ? meds.filter(m => m.condition==="maternal") : meds.filter(m => m.condition!=="maternal");
   const takenCount  = meds.filter(m => m.taken).length;
@@ -449,6 +568,9 @@ function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isP
           </div>
         </div>
       )}
+
+      <VitalLogCard profile={profile} vitals={vitals||[]} onLog={logVital}/>
+      <WeeklyDigest isPremium={isPremium} insight={insight} insightLoading={insightLoading} onRefresh={onRefreshInsight} onShowUpgrade={onShowUpgrade}/>
 
       <div style={{ marginBottom:20 }}>
         <h3 style={{ fontSize:16, fontWeight:700, marginBottom:12, color:BRAND.color.text }}>Today's Medications</h3>
@@ -506,7 +628,7 @@ function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isP
 }
 
 // ─── AI CHAT ──────────────────────────────────────────────────────────────
-function Chat({ profile, isPremium, onShowUpgrade }) {
+function Chat({ profile, isPremium, onShowUpgrade, vitals, meds }) {
   const [messages, setMessages] = useState(CHAT_INIT);
   const [input, setInput]       = useState("");
   const [typing, setTyping]     = useState(false);
@@ -529,7 +651,7 @@ function Chat({ profile, isPremium, onShowUpgrade }) {
       const res = await fetch("/.netlify/functions/chat", {
         method:"POST",
         headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ messages:updatedMessages, profile }),
+        body: JSON.stringify({ messages:updatedMessages, profile, vitals:(vitals||[]).slice(0,10), meds:meds||[] }),
       });
       const data = await res.json();
       setTyping(false);
@@ -848,8 +970,11 @@ function AfyaApp() {
   const [tab, setTab]                       = useState("home");
   const [meds, setMeds]                     = useState(INITIAL_MEDS);
   const [referralState, setReferralState]   = useState({ myCode:"", friendsReferred:0, freeMonthsEarned:0 });
-  const [showUpgrade, setShowUpgrade]       = useState(false);
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [showUpgrade, setShowUpgrade]         = useState(false);
+  const [upgradeLoading, setUpgradeLoading]   = useState(false);
+  const [vitals, setVitals]                   = useState([]);
+  const [insight, setInsight]                 = useState(null);
+  const [insightLoading, setInsightLoading]   = useState(false);
 
   const isPremium = !!(profile?.is_premium);
 
@@ -868,16 +993,47 @@ function AfyaApp() {
     setProfileLoading(false);
   }, []);
 
+  const loadVitals = useCallback(async (userId) => {
+    const { data } = await sb.from("health_logs")
+      .select("*").eq("user_id", userId)
+      .order("logged_at", { ascending: false }).limit(30);
+    if (data) setVitals(data);
+  }, []);
+
+  const logVital = async (type, value, value2, context, unit) => {
+    if (!session) return;
+    await sb.from("health_logs").insert({
+      user_id: session.user.id, type, value,
+      value2: value2 || null, context: context || null, unit,
+      logged_at: new Date().toISOString(),
+    });
+    await loadVitals(session.user.id);
+  };
+
+  const refreshInsight = useCallback(async () => {
+    if (!isPremium || !profile) return;
+    setInsightLoading(true);
+    try {
+      const res = await fetch("/.netlify/functions/insights", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ profile, vitals: vitals.slice(0,20), meds }),
+      });
+      const data = await res.json();
+      if (data.insight) setInsight(data.insight);
+    } catch(e) { console.error("Insight error:", e); }
+    setInsightLoading(false);
+  }, [isPremium, profile, vitals, meds]);
+
   useEffect(() => {
     sb.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) loadProfile(session.user.id);
+      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); }
       else setSessionLoading(false);
     });
     const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) { loadProfile(session.user.id); setSessionLoading(false); }
-      else { setProfile(null); setOnboarded(false); setSessionLoading(false); }
+      if (session) { loadProfile(session.user.id); loadVitals(session.user.id); setSessionLoading(false); }
+      else { setProfile(null); setOnboarded(false); setVitals([]); setInsight(null); setSessionLoading(false); }
     });
     return () => subscription.unsubscribe();
   }, [loadProfile]);
@@ -985,8 +1141,8 @@ function AfyaApp() {
       </div>
 
       <div style={{ flex:1, overflow:"auto" }}>
-        {tab==="home"    && <Dashboard profile={profile} meds={meds} onToggleMed={toggleMed} referralState={referralState} onGoToRefer={() => setTab("refer")} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
-        {tab==="chat"    && <Chat profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
+        {tab==="home"    && <Dashboard profile={profile} meds={meds} onToggleMed={toggleMed} referralState={referralState} onGoToRefer={() => setTab("refer")} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} logVital={logVital} insight={insight} insightLoading={insightLoading} onRefreshInsight={refreshInsight}/>}
+        {tab==="chat"    && <Chat profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} meds={meds}/>}
         {tab==="meds"    && <Medications meds={meds} onToggleMed={toggleMed} profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
         {tab==="refer"   && <ReferFriends profile={profile} referralState={referralState} onSimulateReferral={simulateReferral}/>}
         {tab==="profile" && <Profile profile={profile} referralState={referralState} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
