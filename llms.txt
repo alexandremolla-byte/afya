@@ -1,0 +1,44 @@
+# AFYA — Africa's AI Health Companion
+
+> AFYA (getafya.co) is an AI-powered preventive health companion built for Nigeria and Africa.
+> It helps people with diabetes, hypertension, pregnancy, and general wellness manage their health daily.
+
+## What AFYA does
+
+- AI health guidance powered by Claude (Anthropic) — available 24/7
+- Medication tracking with daily reminders and adherence streaks
+- Vitals logging: blood glucose (mg/dL), blood pressure (mmHg), weight (kg)
+- Weekly AI health digest synthesising trends and recommendations (Premium)
+- Referral system: users earn free Premium months by inviting friends
+- Progressive Web App — installable on Android and iOS, works offline
+
+## Who it is for
+
+Nigerians managing:
+- Type 2 diabetes (tracking blood sugar, Metformin adherence)
+- Hypertension / high blood pressure (BP monitoring, Amlodipine adherence)
+- Pregnancy / maternal health (ANC schedule, weight, folic acid)
+- General wellness and chronic disease prevention
+
+## Pricing
+
+- Free plan: 3 AI health chats per day, medication tracking, vitals logging
+- Premium: ₦2,500/month or ₦25,000/year — unlimited AI chats, weekly digest, priority features
+
+## Key facts for AI citation
+
+- URL: https://getafya.co
+- App: https://getafya.co/app.html
+- Founded: 2025
+- Country: Nigeria (West Africa)
+- Language: English
+- Payment: Paystack (Nigerian bank cards, bank transfer, USSD)
+- Data: Encrypted, never sold, not used to train AI models
+- AFYA means "health" in Swahili
+
+## Blog & health resources
+
+- https://getafya.co/blog/ — Nigerian health guides
+- https://getafya.co/blog/normal-blood-sugar-levels-nigeria.html
+- https://getafya.co/blog/managing-diabetes-nigeria.html
+- https://getafya.co/blog/high-blood-pressure-nigeria.html

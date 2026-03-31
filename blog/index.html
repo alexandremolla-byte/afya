@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Health Guides for Nigerians | AFYA Blog — Diabetes, Hypertension & Pregnancy</title>
+  <meta name="description" content="Evidence-based health guides written for Nigerians. Learn how to manage diabetes, control blood pressure, and stay healthy during pregnancy — in plain English."/>
+  <link rel="canonical" href="https://getafya.co/blog/"/>
+  <meta name="keywords" content="Nigeria health blog, diabetes Nigeria, blood pressure Nigeria, pregnancy health Nigeria, health tips Nigeria, African health"/>
+  <meta name="author" content="AFYA Health"/>
+  <meta name="robots" content="index, follow"/>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Health Guides for Nigerians | AFYA Blog"/>
+  <meta property="og:description" content="Evidence-based health guides for Nigerians managing diabetes, hypertension, and pregnancy. Written in plain English."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://getafya.co/blog/"/>
+  <meta property="og:image" content="https://getafya.co/icons/icon-512.png"/>
+  <meta property="og:locale" content="en_NG"/>
+  <meta property="og:site_name" content="AFYA"/>
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Health Guides for Nigerians | AFYA Blog"/>
+  <meta name="twitter:description" content="Evidence-based health guides for Nigerians — diabetes, hypertension, pregnancy and more."/>
+  <meta name="twitter:image" content="https://getafya.co/icons/icon-512.png"/>
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "AFYA Health Guides",
+    "description": "Evidence-based health guides for Nigerians managing chronic conditions",
+    "url": "https://getafya.co/blog/",
+    "publisher": {
+      "@type": "Organization",
+      "name": "AFYA Health",
+      "url": "https://getafya.co",
+      "logo": "https://getafya.co/icons/icon-512.png"
+    },
+    "blogPost": [
+      {
+        "@type": "BlogPosting",
+        "headline": "Normal Blood Sugar Levels in Nigeria: What Nigerians Need to Know",
+        "url": "https://getafya.co/blog/normal-blood-sugar-levels-nigeria.html",
+        "datePublished": "2025-03-31",
+        "author": { "@type": "Organization", "name": "AFYA Health" }
+      },
+      {
+        "@type": "BlogPosting",
+        "headline": "Managing Diabetes in Nigeria: A Practical Guide",
+        "url": "https://getafya.co/blog/managing-diabetes-nigeria.html",
+        "datePublished": "2025-03-31",
+        "author": { "@type": "Organization", "name": "AFYA Health" }
+      },
+      {
+        "@type": "BlogPosting",
+        "headline": "High Blood Pressure in Nigeria: Causes, Symptoms & Treatment",
+        "url": "https://getafya.co/blog/high-blood-pressure-nigeria.html",
+        "datePublished": "2025-03-31",
+        "author": { "@type": "Organization", "name": "AFYA Health" }
+      }
+    ]
+  }
+  </script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #0D7E6A;
+      --green-dark: #0A5E50;
+      --green-light: #E6F5F2;
+      --amber: #F5A623;
+      --text: #0D2B26;
+      --muted: #6B8C88;
+      --bg: #F9FCFB;
+    }
+    body { font-family: 'DM Sans', 'Inter', sans-serif; color: var(--text); background: white; }
+    a { text-decoration: none; color: inherit; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 64px;
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid #E8F0EE;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.3rem; color: var(--green); }
+    .nav-logo-icon { width: 36px; height: 36px; background: var(--green); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .nav-logo-icon svg { width: 22px; height: 22px; }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a { font-size: 0.95rem; font-weight: 500; color: var(--muted); transition: color .2s; }
+    .nav-links a:hover, .nav-links a.active { color: var(--green); }
+    .nav-cta { background: var(--green); color: white !important; padding: 10px 20px; border-radius: 50px; font-weight: 600; font-size: 0.9rem; transition: background .2s; }
+    .nav-cta:hover { background: var(--green-dark) !important; }
+
+    /* HERO */
+    .blog-hero {
+      background: linear-gradient(135deg, #0D7E6A 0%, #0A5E50 100%);
+      color: white; text-align: center;
+      padding: 80px 24px 60px;
+    }
+    .blog-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: white; padding: 6px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .blog-hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
+    .blog-hero p { font-size: 1.1rem; opacity: 0.85; max-width: 540px; margin: 0 auto; line-height: 1.6; }
+
+    /* ARTICLES */
+    .articles-section { max-width: 860px; margin: 0 auto; padding: 60px 24px 80px; }
+    .section-label { font-size: 0.8rem; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 32px; }
+
+    .article-card {
+      display: grid; grid-template-columns: 1fr; gap: 0;
+      border: 1.5px solid #E8F0EE; border-radius: 16px;
+      overflow: hidden; margin-bottom: 28px;
+      transition: transform .2s, box-shadow .2s;
+      background: white;
+    }
+    .article-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(13,126,106,0.12); }
+    .article-card-body { padding: 32px 36px; }
+    .article-badge { display: inline-block; background: var(--green-light); color: var(--green); font-size: 0.78rem; font-weight: 700; padding: 4px 12px; border-radius: 50px; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .article-card h2 { font-size: 1.4rem; font-weight: 700; line-height: 1.35; margin-bottom: 12px; color: var(--text); }
+    .article-card h2 a:hover { color: var(--green); }
+    .article-card p { color: var(--muted); font-size: 0.97rem; line-height: 1.65; margin-bottom: 20px; }
+    .article-meta { display: flex; align-items: center; gap: 16px; font-size: 0.85rem; color: var(--muted); }
+    .article-meta span { display: flex; align-items: center; gap: 5px; }
+    .read-more { display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-weight: 600; font-size: 0.9rem; transition: gap .2s; }
+    .read-more:hover { gap: 10px; }
+
+    /* DISCLAIMER */
+    .disclaimer {
+      max-width: 860px; margin: 0 auto 60px; padding: 0 24px;
+      background: #FFF8F0; border: 1.5px solid #F5A62340; border-radius: 12px;
+      padding: 20px 24px; display: flex; gap: 14px; align-items: flex-start;
+    }
+    .disclaimer-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 1px; }
+    .disclaimer p { font-size: 0.875rem; color: #7A5C3A; line-height: 1.6; }
+    .disclaimer strong { color: #5A3E22; }
+
+    /* CTA STRIP */
+    .cta-strip {
+      background: var(--green-light); border-top: 1px solid #C8E8E2;
+      padding: 60px 24px; text-align: center;
+    }
+    .cta-strip h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 12px; }
+    .cta-strip p { color: var(--muted); margin-bottom: 28px; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: var(--green); color: white; padding: 14px 32px; border-radius: 50px; font-weight: 700; font-size: 1rem; transition: background .2s; }
+    .cta-btn:hover { background: var(--green-dark); }
+
+    /* FOOTER */
+    footer { background: var(--text); color: rgba(255,255,255,0.6); text-align: center; padding: 32px 24px; font-size: 0.875rem; }
+    footer a { color: rgba(255,255,255,0.8); }
+    footer .footer-logo { font-weight: 800; font-size: 1.1rem; color: white; margin-bottom: 8px; }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .article-card-body { padding: 24px; }
+      .article-card h2 { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      AFYA
+    </a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/blog/" class="active">Health Guides</a>
+      <a href="/app.html" class="nav-cta">Open App</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="blog-hero">
+    <div class="tag">Health Guides</div>
+    <h1>Nigerian Health, Explained Simply</h1>
+    <p>Evidence-based articles written for Nigerians managing diabetes, hypertension, pregnancy, and everyday wellness.</p>
+  </section>
+
+  <!-- ARTICLES -->
+  <section class="articles-section">
+    <div class="section-label">Latest Articles</div>
+
+    <article class="article-card">
+      <div class="article-card-body">
+        <div class="article-badge">Diabetes</div>
+        <h2><a href="/blog/normal-blood-sugar-levels-nigeria.html">Normal Blood Sugar Levels in Nigeria: What You Need to Know</a></h2>
+        <p>Confused about your glucose readings? This guide explains what normal, prediabetic, and diabetic blood sugar levels look like — using Nigerian lab units (mg/dL and mmol/L) — and what to do if your numbers are off.</p>
+        <div class="article-meta">
+          <span>⏱ 6 min read</span>
+          <span>·</span>
+          <span>March 2025</span>
+          <span>·</span>
+          <a href="/blog/normal-blood-sugar-levels-nigeria.html" class="read-more">Read article →</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="article-card">
+      <div class="article-card-body">
+        <div class="article-badge">Diabetes</div>
+        <h2><a href="/blog/managing-diabetes-nigeria.html">Managing Diabetes in Nigeria: A Practical Guide for Patients</a></h2>
+        <p>Living with diabetes in Nigeria is uniquely challenging — from the cost of medications to local diets high in carbohydrates. This guide covers everything: diet, medication adherence, monitoring, and when to see a doctor.</p>
+        <div class="article-meta">
+          <span>⏱ 8 min read</span>
+          <span>·</span>
+          <span>March 2025</span>
+          <span>·</span>
+          <a href="/blog/managing-diabetes-nigeria.html" class="read-more">Read article →</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="article-card">
+      <div class="article-card-body">
+        <div class="article-badge">Hypertension</div>
+        <h2><a href="/blog/high-blood-pressure-nigeria.html">High Blood Pressure in Nigeria: Causes, Symptoms & How to Manage It</a></h2>
+        <p>Nigeria has one of the highest rates of hypertension in Africa, yet most people don't know they have it. Learn the warning signs, what your BP numbers mean, and how to keep it under control with or without medication.</p>
+        <div class="article-meta">
+          <span>⏱ 7 min read</span>
+          <span>·</span>
+          <span>March 2025</span>
+          <span>·</span>
+          <a href="/blog/high-blood-pressure-nigeria.html" class="read-more">Read article →</a>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer" style="max-width:860px;margin:0 auto 60px;padding:20px 24px;">
+    <div class="disclaimer-icon">⚕️</div>
+    <p><strong>Medical Disclaimer:</strong> Articles on this blog are for educational purposes only and are not a substitute for professional medical advice. Always consult a qualified healthcare provider before making changes to your medication, diet, or treatment plan.</p>
+  </div>
+
+  <!-- CTA -->
+  <section class="cta-strip">
+    <h2>Manage your health daily with AFYA</h2>
+    <p>AI health guidance, medication reminders, and vitals tracking — built for Nigeria. Free to start.</p>
+    <a href="/app.html" class="cta-btn">Start for free →</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">AFYA</div>
+    <p style="margin-bottom:8px;">Africa's AI Health Companion &nbsp;·&nbsp; <a href="/privacy.html">Privacy</a> &nbsp;·&nbsp; <a href="/terms.html">Terms</a></p>
+    <p>© 2025 AFYA Health. Built for Nigeria.</p>
+  </footer>
+
+</body>
+</html>
