@@ -40,6 +40,7 @@ const { useState, useRef, useEffect, useCallback } = React;
 const SUPABASE_URL    = 'https://dmszzxxbnrqiugfjwubb.supabase.co';
 const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc3p6eHhibnJxaXVnZmp3dWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDExODgsImV4cCI6MjA5MDM3NzE4OH0.R9LF1vbSmAcWOtyAgty8kMYaaW5-ntOByr-9FcK4zSE';
 const PAYSTACK_KEY    = 'pk_test_f0b02f7ab0283fbc95cb18b5dae7cd59c9851a0e';
+const VAPID_PUBLIC    = '9QkRwDD6SRxJkO-DMPsnK8LCG3PPhQ0E4kM56bLaI7Cf_90FCr1yI320aB4xd44JX2JMXbdMEUJPCBatVfD8fw';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── BRAND ───────────────────────────────────────────────────────────────
@@ -63,6 +64,39 @@ function trackEvent(name, properties = {}, userId = null) {
       properties,
     }).then(() => {}).catch(() => {}); // silent — never block UX
   } catch(_) {}
+}
+
+// ─── PUSH NOTIFICATIONS ───────────────────────────────────────────────────
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function subscribeToPush(userId) {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return false;
+
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    const sub = existing || await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+    });
+
+    await fetch("/.netlify/functions/save-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, subscription: sub.toJSON() }),
+    });
+    return true;
+  } catch(e) {
+    console.error("Push subscribe error:", e);
+    return false;
+  }
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────
@@ -951,9 +985,16 @@ function ReferFriends({ profile, referralState, onSimulateReferral }) {
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────
-function Profile({ profile, referralState, isPremium, onShowUpgrade }) {
-  const [signingOut, setSigningOut] = useState(false);
+function Profile({ profile, referralState, isPremium, onShowUpgrade, userId }) {
+  const [signingOut, setSigningOut]     = useState(false);
+  const [notifStatus, setNotifStatus]   = useState(
+    "Notification" in window ? Notification.permission : "unsupported"
+  );
   const handleSignOut = async () => { setSigningOut(true); await sb.auth.signOut(); };
+  const handleEnableNotifs = async () => {
+    const ok = await subscribeToPush(userId);
+    setNotifStatus(ok ? "granted" : Notification.permission);
+  };
 
   return (
     <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
@@ -999,6 +1040,16 @@ function Profile({ profile, referralState, isPremium, onShowUpgrade }) {
         </div>
       )}
 
+      {notifStatus !== "unsupported" && notifStatus !== "granted" && (
+        <button onClick={handleEnableNotifs} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${BRAND.color.primary}`, background:BRAND.color.light, color:BRAND.color.primary, fontSize:15, fontWeight:600, cursor:"pointer", fontFamily:"inherit", marginBottom:12 }}>
+          🔔 Enable medication reminders
+        </button>
+      )}
+      {notifStatus === "granted" && (
+        <div style={{ textAlign:"center", padding:"10px", marginBottom:12, fontSize:14, color:BRAND.color.primary, fontWeight:600 }}>
+          🔔 Notifications enabled
+        </div>
+      )}
       <button onClick={handleSignOut} disabled={signingOut} style={{ width:"100%", padding:"14px", borderRadius:14, border:"2px solid #FFD0D0", background:"white", color:BRAND.color.danger, fontSize:15, fontWeight:600, cursor:"pointer", fontFamily:"inherit", marginBottom:16 }}>
         {signingOut ? "Signing out…" : "Sign out"}
       </button>
@@ -1183,6 +1234,8 @@ function AfyaApp() {
     // Reload fresh profile + meds from Supabase
     await loadProfile(session.user.id);
     await loadMeds(session.user.id);
+    // Ask for notification permission after a short delay (less jarring post-onboarding)
+    setTimeout(() => subscribeToPush(session.user.id), 3000);
   };
 
   // ── Paystack upgrade ──────────────────────────────────────────────────
@@ -1276,7 +1329,7 @@ function AfyaApp() {
         {tab==="chat"    && <Chat profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} meds={meds}/>}
         {tab==="meds"    && <Medications meds={meds} medLogs={medLogs} onToggleMed={toggleMed} onAddMed={addMed} profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
         {tab==="refer"   && <ReferFriends profile={profile} referralState={referralState} onSimulateReferral={simulateReferral}/>}
-        {tab==="profile" && <Profile profile={profile} referralState={referralState} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
+        {tab==="profile" && <Profile profile={profile} referralState={referralState} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} userId={session.user.id}/>}
       </div>
 
       <div style={{ background:"white", borderTop:"1px solid #EEF2F0", padding:"8px 0 16px", display:"flex" }}>

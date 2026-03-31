@@ -1,9 +1,9 @@
-// AFYA Service Worker — v1
+// AFYA Service Worker — v2
 // Strategy:
 //   App shell (HTML, fonts, icons) → Cache-first
 //   Supabase / Netlify functions  → Network-first (never cache API calls)
 
-const CACHE_NAME  = "afya-v1";
+const CACHE_NAME  = "afya-v2";
 const APP_SHELL   = [
   "/app.html",
   "/manifest.json",
@@ -27,6 +27,43 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// ── Push: show notification ────────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = { title: "AFYA", body: "Time to check your health!", url: "/app.html" };
+  try { data = { ...data, ...JSON.parse(event.data.text()) }; } catch(_) {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:    data.body,
+      icon:    data.icon  || "/icons/icon-192.png",
+      badge:   data.badge || "/icons/icon-72.png",
+      data:    { url: data.url || "/app.html" },
+      vibrate: [200, 100, 200],
+      tag:     "afya-reminder", // replaces previous unread notification
+      renotify: true,
+    })
+  );
+});
+
+// ── Notification click: open app ───────────────────────────────────────────
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/app.html";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      // Focus existing window if open
+      for (const client of windowClients) {
+        if (client.url.includes("getafya.co") && "focus" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      // Otherwise open new window
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });
 
 // ── Fetch: route requests ─────────────────────────────────────────────────
