@@ -23,9 +23,13 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideInLeft  { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: translateX(0); } }
     .typing-dot { animation: bounce 1.2s infinite; }
     .fade-in { animation: fadeIn 0.3s ease; }
     .slide-up { animation: slideUp 0.35s ease; }
+    .slide-in-right { animation: slideInRight 0.32s cubic-bezier(0.22,1,0.36,1); }
+    .slide-in-left  { animation: slideInLeft  0.32s cubic-bezier(0.22,1,0.36,1); }
   </style>
 </head>
 <body>
@@ -280,14 +284,23 @@ function UpgradeModal({ onUpgrade, onClose, loading }) {
 
 // ─── ONBOARDING ───────────────────────────────────────────────────────────
 function Onboarding({ onComplete }) {
-  const [step, setStep]             = useState(0);
-  const [profile, setProfile]       = useState({ name:"", age:"", condition:"", weeks:"" });
-  const [promoInput, setPromoInput]     = useState("");
-  const [promoStatus, setPromoStatus]   = useState(null); // null | "checking" | "valid" | "invalid"
+  const [step, setStep]               = useState(0);
+  const [animKey, setAnimKey]         = useState(0);
+  const [direction, setDirection]     = useState("forward");
+  const [profile, setProfile]         = useState({ name:"", age:"", condition:"", weeks:"" });
+  const [promoInput, setPromoInput]   = useState("");
+  const [promoStatus, setPromoStatus] = useState(null);
   const [referrerName, setReferrerName] = useState("");
-  const [saving, setSaving]             = useState(false);
+  const [saving, setSaving]           = useState(false);
+  const inputRef = useRef(null);
 
-  // Debounced real-time validation against Supabase via Netlify function
+  // Auto-focus input on each step
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  // Debounced promo validation
   useEffect(() => {
     const clean = promoInput.trim().toUpperCase();
     if (clean.length < 4) { setPromoStatus(null); setReferrerName(""); return; }
@@ -306,23 +319,34 @@ function Onboarding({ onComplete }) {
     return () => clearTimeout(timer);
   }, [promoInput]);
 
+  const CONDITION_META = {
+    diabetes:     { icon:"💉", label:"Diabetes management",        color:"#E8F5E9" },
+    hypertension: { icon:"❤️",  label:"High blood pressure",        color:"#FCE4EC" },
+    maternal:     { icon:"🤰", label:"Pregnancy & maternal health", color:"#FFF3E0" },
+    wellness:     { icon:"🏃", label:"General wellness",            color:"#E3F2FD" },
+  };
+
   const steps = [
     {
+      key:"welcome",
       title:"Welcome to AFYA", subtitle:"Africa's preventive health companion",
+      canNext: true,
       body: (
         <div style={{ textAlign:"center" }}>
-          <div style={{ margin:"24px 0" }}>
-            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+          <div style={{ margin:"8px 0 28px" }}>
+            <svg width="88" height="88" viewBox="0 0 80 80" fill="none">
               <rect width="80" height="80" rx="20" fill="#0D7E6A"/>
               <path d="M8 40 L22 40 L26 30 L30 52 L34 18 L38 58 L42 40 L72 40" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <p style={{ color:BRAND.color.muted, lineHeight:1.6 }}>Powered by AI. Swahili for "health". Built for Africa. Designed to keep you healthy — before you get sick.</p>
-          <div style={{ marginTop:32, display:"flex", flexDirection:"column", gap:12 }}>
-            {["Chronic disease management","Maternal health support","Daily medication reminders","AI health guidance — 24/7"].map(f => (
-              <div key={f} style={{ display:"flex", alignItems:"center", gap:10, background:BRAND.color.light, borderRadius:10, padding:"10px 16px" }}>
-                <span style={{ color:BRAND.color.primary }}>✓</span>
-                <span style={{ fontSize:14 }}>{f}</span>
+          <p style={{ color:BRAND.color.muted, lineHeight:1.7, fontSize:15, marginBottom:28 }}>
+            Powered by AI · <em>Swahili for "health"</em><br/>Built for Africa. Designed to keep you healthy — before you get sick.
+          </p>
+          <div style={{ display:"flex", flexDirection:"column", gap:10, textAlign:"left" }}>
+            {[["💉","Chronic disease management"],["🤰","Maternal health support"],["💊","Daily medication reminders"],["🤖","AI health guidance — 24/7"]].map(([icon,f]) => (
+              <div key={f} style={{ display:"flex", alignItems:"center", gap:12, background:BRAND.color.light, borderRadius:12, padding:"12px 16px" }}>
+                <span style={{ fontSize:20 }}>{icon}</span>
+                <span style={{ fontSize:14, fontWeight:500 }}>{f}</span>
               </div>
             ))}
           </div>
@@ -330,85 +354,111 @@ function Onboarding({ onComplete }) {
       ),
     },
     {
+      key:"name",
       title:"What's your name?", subtitle:"Let's personalise your experience",
+      canNext: !!profile.name.trim(),
       body: (
-        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          <input placeholder="Enter your first name" value={profile.name} onChange={e => setProfile(p => ({...p, name:e.target.value}))}
-            style={{ width:"100%", padding:"14px 16px", border:`2px solid ${BRAND.color.light}`, borderRadius:12, fontSize:16, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}/>
-          <input placeholder="Your age" type="number" value={profile.age} onChange={e => setProfile(p => ({...p, age:e.target.value}))}
-            style={{ width:"100%", padding:"14px 16px", border:`2px solid ${BRAND.color.light}`, borderRadius:12, fontSize:16, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}/>
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <input ref={inputRef} placeholder="Enter your first name" value={profile.name}
+            onChange={e => setProfile(p => ({...p, name:e.target.value}))}
+            onKeyDown={e => e.key==="Enter" && profile.name.trim() && goNext()}
+            style={{ width:"100%", padding:"16px", border:`2px solid ${profile.name ? BRAND.color.primary : BRAND.color.light}`, borderRadius:14, fontSize:18, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.2s" }}/>
+          <input ref={profile.name ? undefined : inputRef} placeholder="Your age" type="number" value={profile.age}
+            onChange={e => setProfile(p => ({...p, age:e.target.value}))}
+            onKeyDown={e => e.key==="Enter" && profile.name.trim() && goNext()}
+            style={{ width:"100%", padding:"16px", border:`2px solid ${profile.age ? BRAND.color.primary : BRAND.color.light}`, borderRadius:14, fontSize:18, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.2s" }}/>
+          {profile.name.trim() && (
+            <div className="fade-in" style={{ background:BRAND.color.light, borderRadius:12, padding:"12px 16px", fontSize:14, color:BRAND.color.primary, fontWeight:600 }}>
+              👋 Hi {profile.name.trim().split(" ")[0]}! Let's get you set up.
+            </div>
+          )}
         </div>
       ),
     },
     {
-      title:"What brings you here?", subtitle:"We'll personalise your health plan",
+      key:"condition",
+      title:"What brings you here?", subtitle:"We'll build your personalised health plan",
+      canNext: !!profile.condition,
       body: (
-        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {[
-            { key:"diabetes",    label:"Diabetes management",       icon:"💉", desc:"Track glucose, medication, diet" },
-            { key:"hypertension",label:"High blood pressure",        icon:"❤️", desc:"Monitor BP, medication, stress" },
-            { key:"maternal",    label:"Pregnancy & maternal health", icon:"🤰", desc:"ANC tracking, nutrition, baby milestones" },
-            { key:"wellness",    label:"General wellness",           icon:"🏃", desc:"Prevention, habits, healthy lifestyle" },
-          ].map(c => (
-            <button key={c.key} onClick={() => setProfile(p => ({...p, condition:c.key}))} style={{
-              display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
-              border:`2px solid ${profile.condition===c.key ? BRAND.color.primary : BRAND.color.light}`,
-              borderRadius:12, background: profile.condition===c.key ? BRAND.color.light : "white",
-              cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-            }}>
-              <span style={{ fontSize:28 }}>{c.icon}</span>
-              <div>
-                <div style={{ fontWeight:600, fontSize:14 }}>{c.label}</div>
-                <div style={{ fontSize:12, color:BRAND.color.muted }}>{c.desc}</div>
-              </div>
-            </button>
-          ))}
+            { key:"diabetes",     label:"Diabetes management",       icon:"💉", desc:"Track glucose, medication, diet" },
+            { key:"hypertension", label:"High blood pressure",        icon:"❤️",  desc:"Monitor BP, medication, stress" },
+            { key:"maternal",     label:"Pregnancy & maternal health", icon:"🤰", desc:"ANC tracking, nutrition, milestones" },
+            { key:"wellness",     label:"General wellness",           icon:"🏃", desc:"Prevention, habits, healthy lifestyle" },
+          ].map(c => {
+            const selected = profile.condition === c.key;
+            return (
+              <button key={c.key} onClick={() => setProfile(p => ({...p, condition:c.key}))} style={{
+                display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
+                border:`2px solid ${selected ? BRAND.color.primary : BRAND.color.light}`,
+                borderRadius:14, background: selected ? BRAND.color.light : "white",
+                cursor:"pointer", textAlign:"left", fontFamily:"inherit",
+                transform: selected ? "scale(1.01)" : "scale(1)", transition:"all 0.15s ease",
+              }}>
+                <span style={{ fontSize:30 }}>{c.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:14, color:selected ? BRAND.color.primary : BRAND.color.text }}>{c.label}</div>
+                  <div style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>{c.desc}</div>
+                </div>
+                {selected && <span style={{ color:BRAND.color.primary, fontSize:20 }}>✓</span>}
+              </button>
+            );
+          })}
         </div>
       ),
     },
     {
-      title:"Got a friend's promo code?", subtitle:"You'll both get 1 month of Premium free",
+      key:"promo",
+      title:"Got a friend's promo code?", subtitle:"You'll both get 1 month Premium free",
+      canNext: true,
       body: (
         <div>
           <div style={{ background:BRAND.color.light, borderRadius:16, padding:"16px 20px", marginBottom:20 }}>
             <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
               <span style={{ fontSize:28 }}>🎁</span>
-              <div style={{ fontSize:13, color:BRAND.color.text, lineHeight:1.65 }}>
-                If a friend shared their AFYA code, enter it below.<br/>
+              <div style={{ fontSize:13, color:BRAND.color.text, lineHeight:1.7 }}>
+                Enter a friend's AFYA code below.<br/>
                 <strong>You get 1 month free. They get 1 month free.</strong>
               </div>
             </div>
           </div>
           <div style={{ position:"relative" }}>
-            <input placeholder="e.g. ALEX-1A2B" value={promoInput}
+            <input ref={inputRef} placeholder="e.g. ALEX-1A2B" value={promoInput}
               onChange={e => setPromoInput(e.target.value.toUpperCase())}
-              style={{ width:"100%", padding:"14px 44px 14px 16px",
+              style={{ width:"100%", padding:"16px 48px 16px 16px",
                 border:`2px solid ${promoStatus==="valid" ? BRAND.color.primary : promoStatus==="invalid" ? BRAND.color.danger : BRAND.color.light}`,
-                borderRadius:12, fontSize:18, fontWeight:700, letterSpacing:2, outline:"none", textAlign:"center",
-                boxSizing:"border-box", background: promoStatus==="valid" ? BRAND.color.light : "white", fontFamily:"inherit" }}/>
-            {promoStatus==="valid"    && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>✅</span>}
-            {promoStatus==="invalid"  && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:20 }}>❌</span>}
-            {promoStatus==="checking" && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:13, color:BRAND.color.muted }}>⏳</span>}
+                borderRadius:14, fontSize:20, fontWeight:700, letterSpacing:3, outline:"none", textAlign:"center",
+                boxSizing:"border-box", background: promoStatus==="valid" ? BRAND.color.light : "white",
+                fontFamily:"inherit", transition:"border-color 0.2s" }}/>
+            {promoStatus==="valid"    && <span style={{ position:"absolute", right:16, top:"50%", transform:"translateY(-50%)", fontSize:22 }}>✅</span>}
+            {promoStatus==="invalid"  && <span style={{ position:"absolute", right:16, top:"50%", transform:"translateY(-50%)", fontSize:22 }}>❌</span>}
+            {promoStatus==="checking" && <span style={{ position:"absolute", right:16, top:"50%", transform:"translateY(-50%)", fontSize:13, color:BRAND.color.muted }}>⏳</span>}
           </div>
-          {promoStatus==="valid"   && <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:10, padding:"12px 16px", color:BRAND.color.primary, fontWeight:600, fontSize:13 }}>🎉 {referrerName} invited you! You'll both get 1 month Premium free.</div>}
-          {promoStatus==="invalid" && <div style={{ marginTop:12, background:"#FFF0F0", borderRadius:10, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>Code not found. Double-check the code or skip this step.</div>}
-          {promoStatus==="checking"&& <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:10, padding:"12px 16px", color:BRAND.color.muted, fontSize:13 }}>Checking your code…</div>}
-          <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:20, fontSize:13 }}>No code? No problem — skip this step.</p>
+          {promoStatus==="valid"    && <div className="fade-in" style={{ marginTop:12, background:BRAND.color.light, borderRadius:12, padding:"12px 16px", color:BRAND.color.primary, fontWeight:600, fontSize:13 }}>🎉 {referrerName} invited you! You'll both get 1 month Premium free.</div>}
+          {promoStatus==="invalid"  && <div className="fade-in" style={{ marginTop:12, background:"#FFF0F0", borderRadius:12, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>Code not found — double-check it or skip this step.</div>}
+          {promoStatus==="checking" && <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:12, padding:"12px 16px", color:BRAND.color.muted, fontSize:13 }}>Checking your code…</div>}
+          <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:20, fontSize:13 }}>No code? No problem — just skip.</p>
         </div>
       ),
     },
     ...(profile.condition==="maternal" ? [{
-      title:"How many weeks pregnant?", subtitle:"We'll track your milestones",
+      key:"weeks",
+      title:"How many weeks pregnant?", subtitle:"We'll track your milestones week by week",
+      canNext: true,
       body: (
         <div>
-          <input placeholder="e.g. 14" type="number" value={profile.weeks} onChange={e => setProfile(p => ({...p, weeks:e.target.value}))}
-            style={{ width:"100%", padding:"14px 16px", border:`2px solid ${BRAND.color.light}`, borderRadius:12, fontSize:24, fontWeight:700, outline:"none", textAlign:"center", boxSizing:"border-box", fontFamily:"inherit" }}/>
-          <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:8, fontSize:13 }}>weeks pregnant</p>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
+            <input ref={inputRef} placeholder="0" type="number" value={profile.weeks}
+              onChange={e => setProfile(p => ({...p, weeks:e.target.value}))}
+              style={{ width:160, padding:"20px 16px", border:`2px solid ${BRAND.color.light}`, borderRadius:14, fontSize:40, fontWeight:900, outline:"none", textAlign:"center", boxSizing:"border-box", fontFamily:"inherit", color:BRAND.color.primary }}/>
+          </div>
+          <p style={{ textAlign:"center", color:BRAND.color.muted, fontSize:15, marginBottom:20, fontWeight:600 }}>weeks pregnant</p>
           {profile.weeks && (
-            <div style={{ marginTop:20, background:BRAND.color.light, borderRadius:12, padding:16, fontSize:13, color:BRAND.color.text, lineHeight:1.6 }}>
-              {parseInt(profile.weeks)<=12  ? "🤰 First trimester — focus on folic acid and booking your first ANC visit." : ""}
-              {parseInt(profile.weeks)>12 && parseInt(profile.weeks)<=27 ? "🌸 Second trimester — energy is returning! Time for anatomy scan and iron supplements." : ""}
-              {parseInt(profile.weeks)>27   ? "👶 Third trimester — baby is growing fast. Prepare your birth plan and hospital bag." : ""}
+            <div className="fade-in" style={{ background:BRAND.color.light, borderRadius:14, padding:"16px 20px", fontSize:14, color:BRAND.color.text, lineHeight:1.7 }}>
+              {parseInt(profile.weeks)<=12  && "🤰 First trimester — focus on folic acid and booking your first ANC visit."}
+              {parseInt(profile.weeks)>12 && parseInt(profile.weeks)<=27 && "🌸 Second trimester — energy is returning! Time for anatomy scan and iron supplements."}
+              {parseInt(profile.weeks)>27   && "👶 Third trimester — baby is growing fast. Prepare your birth plan and hospital bag."}
             </div>
           )}
         </div>
@@ -416,39 +466,81 @@ function Onboarding({ onComplete }) {
     }] : []),
   ];
 
-  const current = steps[step];
-  const isPromo = current.title==="Got a friend's promo code?";
-  const canNext = step===0 || (step===1 && profile.name) || (step===2 && profile.condition) || isPromo || step>=3;
+  const current  = steps[step];
+  const isPromo  = current.key === "promo";
+  const isLast   = step === steps.length - 1;
+  const canNext  = current.canNext;
+  const progress = ((step + 1) / steps.length) * 100;
 
-  const handleNext = async () => {
-    if (step < steps.length-1) { setStep(s => s+1); return; }
+  const goNext = async () => {
+    if (!isLast) {
+      setDirection("forward");
+      setAnimKey(k => k + 1);
+      setStep(s => s + 1);
+      return;
+    }
     setSaving(true);
-    const appliedPromo = promoStatus==="valid" ? promoInput.trim().toUpperCase() : null;
+    const appliedPromo = promoStatus === "valid" ? promoInput.trim().toUpperCase() : null;
     await onComplete({ ...profile, appliedPromo });
     setSaving(false);
   };
 
+  const goBack = () => {
+    setDirection("backward");
+    setAnimKey(k => k + 1);
+    setStep(s => s - 1);
+  };
+
+  const ctaLabel = saving ? "Setting up your profile…"
+    : isLast ? "Start my health journey 🌿"
+    : isPromo && promoStatus === "valid" ? "Apply & Continue 🎁"
+    : isPromo && promoStatus === "checking" ? "Checking code…"
+    : "Continue →";
+
   return (
-    <div className="fade-in" style={{ minHeight:"100vh", background:"white", display:"flex", flexDirection:"column", padding:"48px 24px 32px" }}>
-      <div style={{ display:"flex", gap:6, marginBottom:32 }}>
-        {steps.map((_,i) => <div key={i} style={{ flex:1, height:4, borderRadius:2, background: i<=step ? BRAND.color.primary : BRAND.color.light }}/>)}
+    <div style={{ minHeight:"100vh", background:"white", display:"flex", flexDirection:"column" }}>
+
+      {/* ── Header: back button + progress ── */}
+      <div style={{ padding:"52px 24px 0", flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:10 }}>
+          {step > 0 ? (
+            <button onClick={goBack} style={{ width:36, height:36, borderRadius:18, border:`2px solid ${BRAND.color.light}`, background:"white", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, flexShrink:0, color:BRAND.color.text }}>
+              ←
+            </button>
+          ) : <div style={{ width:36 }}/>}
+          <div style={{ flex:1 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+              <span style={{ fontSize:12, color:BRAND.color.muted, fontWeight:600 }}>Step {step + 1} of {steps.length}</span>
+              <span style={{ fontSize:12, color:BRAND.color.primary, fontWeight:700 }}>{Math.round(progress)}%</span>
+            </div>
+            <div style={{ height:6, background:BRAND.color.light, borderRadius:3, overflow:"hidden" }}>
+              <div style={{ height:"100%", width:`${progress}%`, background:BRAND.color.primary, borderRadius:3, transition:"width 0.45s cubic-bezier(0.4,0,0.2,1)" }}/>
+            </div>
+          </div>
+        </div>
       </div>
-      <div style={{ flex:1 }}>
-        <h1 style={{ fontSize:26, fontWeight:800, color:BRAND.color.text, marginBottom:6 }}>{current.title}</h1>
-        <p style={{ color:BRAND.color.muted, marginBottom:28, fontSize:14 }}>{current.subtitle}</p>
+
+      {/* ── Animated step content ── */}
+      <div key={animKey} className={direction === "forward" ? "slide-in-right" : "slide-in-left"}
+        style={{ flex:1, padding:"28px 24px 0", overflowY:"auto" }}>
+        <h1 style={{ fontSize:26, fontWeight:900, color:BRAND.color.text, marginBottom:6, lineHeight:1.2 }}>{current.title}</h1>
+        <p style={{ color:BRAND.color.muted, marginBottom:28, fontSize:14, lineHeight:1.6 }}>{current.subtitle}</p>
         {current.body}
       </div>
-      <div style={{ marginTop:24, display:"flex", flexDirection:"column", gap:10 }}>
-        <button onClick={handleNext} disabled={!canNext||saving} style={{
-          width:"100%", padding:"16px", borderRadius:14, border:"none",
-          background: (canNext&&!saving) ? BRAND.color.primary : BRAND.color.light,
-          color: (canNext&&!saving) ? "white" : BRAND.color.muted,
-          fontSize:16, fontWeight:700, cursor:(canNext&&!saving)?"pointer":"default", fontFamily:"inherit",
+
+      {/* ── Bottom CTAs ── */}
+      <div style={{ padding:"20px 24px 36px", flexShrink:0, display:"flex", flexDirection:"column", gap:10 }}>
+        <button onClick={goNext} disabled={!canNext || saving || (isPromo && promoStatus === "checking")} style={{
+          width:"100%", padding:"17px", borderRadius:14, border:"none",
+          background: (canNext && !saving) ? BRAND.color.primary : BRAND.color.light,
+          color: (canNext && !saving) ? "white" : BRAND.color.muted,
+          fontSize:16, fontWeight:700, cursor:(canNext && !saving) ? "pointer" : "default",
+          fontFamily:"inherit", transition:"background 0.2s",
         }}>
-          {saving ? "Saving…" : step<steps.length-1 ? (isPromo&&promoStatus==="valid" ? "Apply & Continue 🎁" : isPromo&&promoStatus==="checking" ? "Checking…" : "Continue →") : "Start my health journey"}
+          {ctaLabel}
         </button>
         {isPromo && (
-          <button onClick={handleNext} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${BRAND.color.light}`, background:"white", color:BRAND.color.muted, fontSize:14, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+          <button onClick={goNext} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${BRAND.color.light}`, background:"white", color:BRAND.color.muted, fontSize:14, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
             Skip — I don't have a code
           </button>
         )}
