@@ -718,15 +718,61 @@
   </div>
 </div>
 
-<!-- FINAL CTA -->
+<!-- FINAL CTA + EMAIL CAPTURE -->
 <div class="waitlist-wrapper" id="get-started" style="text-align:center">
   <h2>Start managing your health today.</h2>
   <p>Free to use. No app download. Works on any smartphone in Nigeria.</p>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+
+  <!-- Primary CTA -->
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:28px">
     <a href="/app.html" class="btn-primary" style="background:white;color:var(--green-dark)">Open AFYA free →</a>
   </div>
-  <p class="waitlist-note">Already have an account? <a href="/app.html" style="color:rgba(255,255,255,0.8);text-decoration:underline">Log in here</a></p>
+
+  <!-- Email capture for visitors not ready to sign up -->
+  <div style="max-width:480px;margin:0 auto">
+    <p style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:12px">Not ready yet? Get our free weekly health tips for Nigerians.</p>
+    <form class="waitlist-form" id="emailCaptureForm" onsubmit="handleEmailCapture(event)">
+      <input type="email" id="captureEmail" placeholder="Your email address" required autocomplete="email"/>
+      <button type="submit" id="captureBtn">Get tips →</button>
+    </form>
+    <p class="waitlist-note" id="captureMsg" style="min-height:20px"></p>
+  </div>
+
+  <p class="waitlist-note" style="margin-top:20px">Already have an account? <a href="/app.html" style="color:rgba(255,255,255,0.8);text-decoration:underline">Log in here</a></p>
 </div>
+
+<script>
+async function handleEmailCapture(e) {
+  e.preventDefault();
+  const email = document.getElementById('captureEmail').value.trim();
+  const btn   = document.getElementById('captureBtn');
+  const msg   = document.getElementById('captureMsg');
+  if (!email) return;
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    const res = await fetch('/.netlify/functions/capture-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, source: 'landing_page' })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      msg.style.color = '#A7F3D0';
+      msg.textContent = '✓ You\'re in! First tips coming soon.';
+      document.getElementById('captureEmail').value = '';
+      btn.textContent = '✓ Done';
+    } else {
+      throw new Error(data.error || 'Something went wrong');
+    }
+  } catch(err) {
+    msg.style.color = '#FCA5A5';
+    msg.textContent = 'Something went wrong — try again.';
+    btn.disabled = false;
+    btn.textContent = 'Get tips →';
+  }
+}
+</script>
 
 <!-- FOOTER -->
 <footer>
