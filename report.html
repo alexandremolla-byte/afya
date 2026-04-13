@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AFYA Patient Report Card</title>
+  <meta name="robots" content="noindex, nofollow"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:       #0D7E6A;
+      --green-dark:  #0A5E50;
+      --green-light: #E8F5EE;
+      --amber:       #F5A623;
+      --text:        #0D2B26;
+      --muted:       #6B8C88;
+      --danger:      #E74C3C;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: #F0F5F3; color: var(--text); min-height: 100vh; }
+
+    .page { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+
+    /* Header */
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .logo   { width: 40px; height: 40px; background: var(--green); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .logo svg { width: 24px; height: 24px; }
+    .header-text h1 { font-size: 18px; font-weight: 800; color: var(--green); }
+    .header-text p  { font-size: 12px; color: var(--muted); }
+
+    /* Card */
+    .card { background: white; border-radius: 20px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+
+    /* Patient hero */
+    .patient-hero { background: linear-gradient(135deg, var(--green), var(--green-dark)); border-radius: 20px; padding: 28px 24px; margin-bottom: 16px; color: white; }
+    .avatar { width: 60px; height: 60px; border-radius: 30px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; margin-bottom: 12px; }
+    .patient-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .patient-meta { font-size: 13px; opacity: 0.8; margin-bottom: 12px; }
+    .condition-badge { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 50px; padding: 5px 14px; font-size: 12px; font-weight: 700; }
+
+    /* Stats row */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .stat { background: white; border-radius: 16px; padding: 16px 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .stat-value { font-size: 28px; font-weight: 900; color: var(--green); line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat.amber .stat-value  { color: var(--amber); }
+    .stat.danger .stat-value { color: var(--danger); }
+
+    /* Section headings */
+    .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+
+    /* 30-day chart */
+    .chart { display: flex; gap: 3px; align-items: flex-end; height: 36px; margin-bottom: 8px; }
+    .bar { flex: 1; border-radius: 3px; min-height: 4px; transition: height 0.3s; }
+    .bar.taken { background: var(--green); height: 36px; }
+    .bar.missed { background: #E0EBE8; height: 12px; }
+    .chart-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+
+    /* Medications */
+    .med-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--green-light); }
+    .med-row:last-child { border-bottom: none; }
+    .med-name { font-size: 15px; font-weight: 600; }
+    .med-time { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .med-status { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 50px; }
+    .med-status.taken  { background: var(--green-light); color: var(--green); }
+    .med-status.pending{ background: #FFF6E6; color: var(--amber); }
+
+    /* Adherence ring */
+    .ring-wrap { display: flex; align-items: center; gap: 20px; }
+    .ring-svg { flex-shrink: 0; }
+    .ring-text h3 { font-size: 28px; font-weight: 900; color: var(--green); line-height: 1; }
+    .ring-text p  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* Footer */
+    .footer { text-align: center; margin-top: 32px; }
+    .footer a { color: var(--green); font-weight: 700; font-size: 14px; }
+    .footer p { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    /* Loading / error */
+    .center { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; gap: 12px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--green-light); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media print {
+      body { background: white; }
+      .page { padding: 0; }
+      .footer a { color: black; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="2,14 6,8 10,16 14,4 18,12 22,10"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>AFYA</h1>
+      <p>Patient Medication Report Card</p>
+    </div>
+  </div>
+
+  <div id="app"><div class="center"><div class="spinner"></div><p style="color:var(--muted);font-size:14px">Loading report…</p></div></div>
+
+</div>
+
+<script>
+const CONDITION_LABELS = {
+  diabetes:     "Diabetes Management",
+  hypertension: "Hypertension Management",
+  maternal:     "Maternal Health (Pregnancy)",
+  wellness:     "General Wellness",
+};
+
+function fmt12h(t) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  return `${((h % 12) || 12)}:${String(m).padStart(2,"0")} ${ampm}`;
+}
+
+function circle(pct, size=80) {
+  const r = (size / 2) - 8;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  const color = pct >= 80 ? "#0D7E6A" : pct >= 50 ? "#F5A623" : "#E74C3C";
+  return `<svg class="ring-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#E8F5EE" stroke-width="8"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="8"
+      stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/>
+  </svg>`;
+}
+
+async function load() {
+  const token = new URLSearchParams(location.search).get("t");
+  if (!token) { renderError("No report token found in the URL."); return; }
+
+  try {
+    const res = await fetch(`/.netlify/functions/get-report?t=${encodeURIComponent(token)}`);
+    if (res.status === 404) { renderError("This report link is invalid or has been removed."); return; }
+    if (!res.ok) throw new Error("Server error");
+    const data = await res.json();
+    render(data);
+  } catch(e) {
+    renderError("Could not load the report. Please try again shortly.");
+  }
+}
+
+function renderError(msg) {
+  document.getElementById("app").innerHTML = `
+    <div class="center">
+      <div style="font-size:40px">⚠️</div>
+      <p style="font-size:16px;font-weight:700;color:var(--text)">${msg}</p>
+      <p style="font-size:13px;color:var(--muted)">If this link was shared with you, ask the patient to resend it.</p>
+    </div>`;
+}
+
+function render(d) {
+  const p = d.patient;
+  const s = d.stats;
+  const meds = d.medications || [];
+  const today = new Date().toISOString().slice(0,10);
+  const todayLogs = (d.chartDays || []).filter(cd => cd.date === today);
+  const todayTaken = s.todayTaken || 0;
+
+  const firstName = (p.name || "Patient").split(" ")[0];
+  const condLabel = CONDITION_LABELS[p.condition] || "Health Monitoring";
+  const memberSince = p.memberSince ? new Date(p.memberSince).toLocaleDateString("en-GB", { month:"long", year:"numeric" }) : "—";
+
+  const adherenceColor = s.adherence30 >= 80 ? "var(--green)" : s.adherence30 >= 50 ? "var(--amber)" : "var(--danger)";
+  const streakClass    = s.streak >= 7 ? "" : s.streak >= 3 ? "amber" : "danger";
+  const adherenceClass = s.adherence30 >= 80 ? "" : s.adherence30 >= 50 ? "amber" : "danger";
+
+  // Chart bars (last 30 days)
+  const bars = (d.chartDays || []).map(day =>
+    `<div class="bar ${day.taken ? "taken" : "missed"}" title="${day.date}"></div>`
+  ).join("");
+
+  // Medication rows
+  const medRows = meds.length ? meds.map(m => {
+    const taken = todayTaken > 0; // simplified: if any taken today flag the first meds as taken
+    return `<div class="med-row">
+      <div>
+        <div class="med-name">💊 ${m.name}</div>
+        <div class="med-time">🕐 ${fmt12h(m.time)}</div>
+      </div>
+    </div>`;
+  }).join("") : `<p style="font-size:14px;color:var(--muted);padding:8px 0">No medications on record.</p>`;
+
+  // Upcoming today (meds whose time is in the future)
+  const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+  const upcoming = meds.filter(m => {
+    if (!m.time) return false;
+    const [h, min] = m.time.split(":").map(Number);
+    return (h * 60 + min) > nowMins;
+  });
+  const upcomingHTML = upcoming.length
+    ? upcoming.map(m => `<div class="med-row"><div><div class="med-name">💊 ${m.name}</div><div class="med-time">Due at ${fmt12h(m.time)}</div></div><span class="med-status pending">Upcoming</span></div>`).join("")
+    : `<p style="font-size:14px;color:var(--muted);padding:8px 0">All medications for today have been scheduled or taken.</p>`;
+
+  const generatedAt = new Date(d.generatedAt).toLocaleString("en-NG", { dateStyle:"medium", timeStyle:"short" });
+
+  document.getElementById("app").innerHTML = `
+    <!-- Patient hero -->
+    <div class="patient-hero">
+      <div class="avatar">${firstName[0].toUpperCase()}</div>
+      <div class="patient-name">${p.name || "Patient"}</div>
+      <div class="patient-meta">${p.age ? p.age + " years · " : ""}Member since ${memberSince}</div>
+      <span class="condition-badge">🏥 ${condLabel}</span>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" style="margin-bottom:16px">
+      <div class="stat ${streakClass}">
+        <div class="stat-value">${s.streak}</div>
+        <div class="stat-label">Day Streak 🔥</div>
+      </div>
+      <div class="stat ${adherenceClass}">
+        <div class="stat-value">${s.adherence30}%</div>
+        <div class="stat-label">30-day adherence</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">${meds.length}</div>
+        <div class="stat-label">Active medications</div>
+      </div>
+    </div>
+
+    <!-- 30-day adherence chart -->
+    <div class="card">
+      <div class="section-title">30-Day Medication History</div>
+      <div class="ring-wrap" style="margin-bottom:20px">
+        ${circle(s.adherence30)}
+        <div class="ring-text">
+          <h3 style="color:${adherenceColor}">${s.adherence30}%</h3>
+          <p>Adherence rate<br>over last 30 days</p>
+          ${s.adherence30 >= 80
+            ? `<p style="margin-top:8px;font-size:12px;color:var(--green);font-weight:700">✅ Excellent adherence</p>`
+            : s.adherence30 >= 50
+            ? `<p style="margin-top:8px;font-size:12px;color:var(--amber);font-weight:700">⚠️ Needs improvement</p>`
+            : `<p style="margin-top:8px;font-size:12px;color:var(--danger);font-weight:700">🚨 Low adherence — discuss with patient</p>`}
+        </div>
+      </div>
+      <div class="chart">${bars}</div>
+      <div class="chart-labels">
+        <span>30 days ago</span>
+        <span>Today</span>
+      </div>
+    </div>
+
+    <!-- Medications -->
+    <div class="card">
+      <div class="section-title">Current Medications (${meds.length})</div>
+      ${medRows}
+    </div>
+
+    <!-- Upcoming today -->
+    <div class="card">
+      <div class="section-title">Upcoming Today</div>
+      ${upcomingHTML}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <a href="https://getafya.co">getafya.co</a>
+      <p>Generated by AFYA · ${generatedAt}</p>
+      <p style="margin-top:8px;font-size:11px;color:var(--muted)">This report is automatically generated from patient self-reported data and is not a substitute for clinical assessment.</p>
+    </div>
+  `;
+}
+
+load();
+</script>
+</body>
+</html>
