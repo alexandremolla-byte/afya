@@ -329,24 +329,35 @@ function Onboarding({ onComplete }) {
   const steps = [
     {
       key:"welcome",
-      title:"Welcome to AFYA", subtitle:"Africa's preventive health companion",
+      title:"Welcome to AFYA 👋", subtitle:"Your daily health companion — built for Nigeria",
       canNext: true,
       body: (
         <div style={{ textAlign:"center" }}>
-          <div style={{ margin:"8px 0 28px" }}>
-            <svg width="88" height="88" viewBox="0 0 80 80" fill="none">
+          <div style={{ margin:"8px 0 20px" }}>
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
               <rect width="80" height="80" rx="20" fill="#0D7E6A"/>
               <path d="M8 40 L22 40 L26 30 L30 52 L34 18 L38 58 L42 40 L72 40" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <p style={{ color:BRAND.color.muted, lineHeight:1.7, fontSize:15, marginBottom:28 }}>
-            Powered by AI · <em>Swahili for "health"</em><br/>Built for Africa. Designed to keep you healthy — before you get sick.
+          <p style={{ color:BRAND.color.text, lineHeight:1.7, fontSize:16, fontWeight:700, marginBottom:6 }}>
+            Set up in 3 minutes. Stay healthy for life.
           </p>
-          <div style={{ display:"flex", flexDirection:"column", gap:10, textAlign:"left" }}>
-            {[["💉","Chronic disease management"],["🤰","Maternal health support"],["💊","Daily medication reminders"],["🤖","AI health guidance — 24/7"]].map(([icon,f]) => (
-              <div key={f} style={{ display:"flex", alignItems:"center", gap:12, background:BRAND.color.light, borderRadius:12, padding:"12px 16px" }}>
-                <span style={{ fontSize:20 }}>{icon}</span>
-                <span style={{ fontSize:14, fontWeight:500 }}>{f}</span>
+          <p style={{ color:BRAND.color.muted, fontSize:14, marginBottom:24, lineHeight:1.6 }}>
+            AFYA reminds you to take your medication, tracks your vitals, and gives you 24/7 AI health guidance — personalised to your condition.
+          </p>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, textAlign:"left" }}>
+            {[
+              ["💊", "Never miss a dose", "Daily medication reminders with streak tracking"],
+              ["🤖", "AI answers 24/7", "Ask anything about your condition — no waiting"],
+              ["📊", "Track what matters", "Blood sugar, BP, weight — all in one place"],
+              ["📋", "Share with your doctor", "One-tap report card for your next appointment"],
+            ].map(([icon, title, desc]) => (
+              <div key={title} style={{ display:"flex", alignItems:"center", gap:12, background:BRAND.color.light, borderRadius:12, padding:"12px 14px" }}>
+                <span style={{ fontSize:22, flexShrink:0 }}>{icon}</span>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:BRAND.color.text }}>{title}</div>
+                  <div style={{ fontSize:12, color:BRAND.color.muted, marginTop:1 }}>{desc}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -382,10 +393,10 @@ function Onboarding({ onComplete }) {
       body: (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {[
-            { key:"diabetes",     label:"Diabetes management",       icon:"💉", desc:"Track glucose, medication, diet" },
-            { key:"hypertension", label:"High blood pressure",        icon:"❤️",  desc:"Monitor BP, medication, stress" },
-            { key:"maternal",     label:"Pregnancy & maternal health", icon:"🤰", desc:"ANC tracking, nutrition, milestones" },
-            { key:"wellness",     label:"General wellness",           icon:"🏃", desc:"Prevention, habits, healthy lifestyle" },
+            { key:"diabetes",     label:"Diabetes management",        icon:"💉", desc:"Metformin reminders · glucose tracking · diet tips for Nigeria" },
+            { key:"hypertension", label:"High blood pressure",         icon:"❤️",  desc:"BP monitoring · Amlodipine/Losartan reminders · stress tips" },
+            { key:"maternal",     label:"Pregnancy & maternal health", icon:"🤰", desc:"ANC visit reminders · folic acid & iron tracking · week-by-week guidance" },
+            { key:"wellness",     label:"General wellness",            icon:"🏃", desc:"Medication tracking · healthy habits · preventive health tips" },
           ].map(c => {
             const selected = profile.condition === c.key;
             return (
@@ -410,7 +421,7 @@ function Onboarding({ onComplete }) {
     },
     {
       key:"promo",
-      title:"Got a friend's promo code?", subtitle:"You'll both get 1 month Premium free",
+      title:"Have a referral code?", subtitle:"Optional — skip if you don't have one",
       canNext: true,
       body: (
         <div>
@@ -438,7 +449,7 @@ function Onboarding({ onComplete }) {
           {promoStatus==="valid"    && <div className="fade-in" style={{ marginTop:12, background:BRAND.color.light, borderRadius:12, padding:"12px 16px", color:BRAND.color.primary, fontWeight:600, fontSize:13 }}>🎉 {referrerName} invited you! You'll both get 1 month Premium free.</div>}
           {promoStatus==="invalid"  && <div className="fade-in" style={{ marginTop:12, background:"#FFF0F0", borderRadius:12, padding:"12px 16px", color:BRAND.color.danger, fontSize:13 }}>Code not found — double-check it or skip this step.</div>}
           {promoStatus==="checking" && <div style={{ marginTop:12, background:BRAND.color.light, borderRadius:12, padding:"12px 16px", color:BRAND.color.muted, fontSize:13 }}>Checking your code…</div>}
-          <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:20, fontSize:13 }}>No code? No problem — just skip.</p>
+          <p style={{ textAlign:"center", color:BRAND.color.muted, marginTop:16, fontSize:13 }}>No code? That's fine — tap <strong>Continue</strong> to skip.</p>
         </div>
       ),
     },
@@ -491,11 +502,11 @@ function Onboarding({ onComplete }) {
     setStep(s => s - 1);
   };
 
+  const stepLabels = { welcome:"Let's go →", name:"Continue →", condition:"Build my plan →", promo:"Apply & Continue 🎁", weeks:"Continue →" };
   const ctaLabel = saving ? "Setting up your profile…"
-    : isLast ? "Start my health journey 🌿"
-    : isPromo && promoStatus === "valid" ? "Apply & Continue 🎁"
+    : isLast ? (profile.condition === "maternal" ? "Start tracking my pregnancy 🤰" : profile.condition === "diabetes" ? "Start managing my diabetes 💉" : profile.condition === "hypertension" ? "Start managing my BP ❤️" : "Start my health journey 🌿")
     : isPromo && promoStatus === "checking" ? "Checking code…"
-    : "Continue →";
+    : stepLabels[current.key] || "Continue →";
 
   return (
     <div style={{ minHeight:"100vh", background:"white", display:"flex", flexDirection:"column" }}>
@@ -510,7 +521,7 @@ function Onboarding({ onComplete }) {
           ) : <div style={{ width:36 }}/>}
           <div style={{ flex:1 }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-              <span style={{ fontSize:12, color:BRAND.color.muted, fontWeight:600 }}>Step {step + 1} of {steps.length}</span>
+              <span style={{ fontSize:12, color:BRAND.color.muted, fontWeight:600 }}>{{ welcome:"Welcome", name:"Your name", condition:"Your condition", promo:"Referral code", weeks:"Pregnancy" }[current.key] || `Step ${step + 1}`}</span>
               <span style={{ fontSize:12, color:BRAND.color.primary, fontWeight:700 }}>{Math.round(progress)}%</span>
             </div>
             <div style={{ height:6, background:BRAND.color.light, borderRadius:3, overflow:"hidden" }}>
