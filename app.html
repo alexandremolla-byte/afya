@@ -521,7 +521,7 @@ function Onboarding({ onComplete }) {
           ) : <div style={{ width:36 }}/>}
           <div style={{ flex:1 }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-              <span style={{ fontSize:12, color:BRAND.color.muted, fontWeight:600 }}>{{ welcome:"Welcome", name:"Your name", condition:"Your condition", promo:"Referral code", weeks:"Pregnancy" }[current.key] || `Step ${step + 1}`}</span>
+              <span style={{ fontSize:12, color:BRAND.color.muted, fontWeight:600 }}>{({welcome:"Welcome",name:"Your name",condition:"Your condition",promo:"Referral code",weeks:"Pregnancy"})[current.key] || ("Step " + (step+1))}</span>
               <span style={{ fontSize:12, color:BRAND.color.primary, fontWeight:700 }}>{Math.round(progress)}%</span>
             </div>
             <div style={{ height:6, background:BRAND.color.light, borderRadius:3, overflow:"hidden" }}>
