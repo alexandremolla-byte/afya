@@ -1453,7 +1453,7 @@ function AfyaApp() {
 
   const loadProfile = useCallback(async (userId) => {
     setProfileLoading(true);
-    const { data } = await sb.from("profiles").select("*,report_token").eq("id", userId).single();
+    const { data } = await sb.from("profiles").select("*").eq("id", userId).single();
     if (data) {
       setProfile(data);
       setReferralState({
