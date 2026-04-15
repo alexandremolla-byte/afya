@@ -9,7 +9,75 @@
 //   VAPID_SUBJECT (e.g. mailto:hello@getafya.co)
 //   CRON_SECRET
 
-const webpush = require("web-push");
+// Web Push implemented with Node.js built-in crypto — no npm required
+const crypto = require("crypto");
+
+const PKCS8_PREFIX = Buffer.from(
+  "308141020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420",
+  "hex"
+);
+
+function b64url(buf) {
+  return Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+function b64dec(str) {
+  return Buffer.from(str.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+}
+
+function vapidJWT(endpoint, subject, pubKey, privKey) {
+  const { protocol, host } = new URL(endpoint);
+  const header  = b64url(JSON.stringify({ typ: "JWT", alg: "ES256" }));
+  const payload = b64url(JSON.stringify({ aud: `${protocol}//${host}`, exp: Math.floor(Date.now() / 1000) + 43200, sub: subject }));
+  const input   = `${header}.${payload}`;
+  const key     = crypto.createPrivateKey({ key: Buffer.concat([PKCS8_PREFIX, b64dec(privKey)]), format: "der", type: "pkcs8" });
+  const sig     = crypto.createSign("SHA256").update(input).sign({ key, dsaEncoding: "ieee-p1363" });
+  return `${input}.${b64url(sig)}`;
+}
+
+function hkdf(salt, ikm, info, len) {
+  const prk = crypto.createHmac("sha256", salt).update(ikm).digest();
+  let t = Buffer.alloc(0), okm = Buffer.alloc(0);
+  for (let i = 1; okm.length < len; i++) {
+    t = crypto.createHmac("sha256", prk).update(Buffer.concat([t, info, Buffer.from([i])])).digest();
+    okm = Buffer.concat([okm, t]);
+  }
+  return okm.slice(0, len);
+}
+
+function encryptPayload(payload, p256dh, auth) {
+  const clientKey = b64dec(p256dh);
+  const authSecret = b64dec(auth);
+  const salt = crypto.randomBytes(16);
+  const ecdh = crypto.createECDH("prime256v1");
+  ecdh.generateKeys();
+  const serverPub = ecdh.getPublicKey();
+  const shared = ecdh.computeSecret(clientKey);
+  const prk = hkdf(authSecret, shared, Buffer.concat([Buffer.from("WebPush: info\x00"), clientKey, serverPub]), 32);
+  const cek   = hkdf(salt, prk, Buffer.from("Content-Encoding: aesgcm128\x00"), 16);
+  const nonce = hkdf(salt, prk, Buffer.from("Content-Encoding: nonce\x00"), 12);
+  const padded = Buffer.concat([Buffer.alloc(2), Buffer.from(payload)]);
+  const cipher = crypto.createCipheriv("aes-128-gcm", cek, nonce);
+  const body = Buffer.concat([cipher.update(padded), cipher.final(), cipher.getAuthTag()]);
+  return { body, salt, serverPub };
+}
+
+async function sendPush(sub, data, vapidPublicKey, vapidPrivateKey, vapidSubject) {
+  const jwt = vapidJWT(sub.endpoint, vapidSubject, vapidPublicKey, vapidPrivateKey);
+  const { body, salt, serverPub } = encryptPayload(JSON.stringify(data), sub.p256dh, sub.auth);
+  const res = await fetch(sub.endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization":    `WebPush ${jwt}`,
+      "Crypto-Key":       `dh=${b64url(serverPub)};p256ecdsa=${vapidPublicKey}`,
+      "Content-Encoding": "aesgcm",
+      "Encryption":       `salt=${b64url(salt)}`,
+      "Content-Type":     "application/octet-stream",
+      "TTL":              "3600",
+    },
+    body,
+  });
+  return res;
+}
 
 exports.handler = async (event) => {
   const headers = {
@@ -26,11 +94,9 @@ exports.handler = async (event) => {
   const SUPABASE_URL  = process.env.SUPABASE_URL;
   const SERVICE_KEY   = process.env.SUPABASE_SERVICE_KEY;
 
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || "mailto:hello@getafya.co",
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY,
-  );
+  const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY;
+  const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+  const VAPID_SUBJECT     = process.env.VAPID_SUBJECT || "mailto:hello@getafya.co";
 
   const sbHeaders = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
 
@@ -81,17 +147,17 @@ exports.handler = async (event) => {
       });
 
       try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-          { TTL: 3600 } // expire after 1 hour if undelivered
+        const res = await sendPush(
+          { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+          { title: "💊 Medication reminder", body: "You haven't logged your meds today. Tap to check them off.", url: "/app.html", icon: "/icons/icon-192.png" },
+          VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
         );
-        sent++;
-      } catch (err) {
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        if (res.ok) { sent++; } else { failed++; }
+        if (res.status === 410 || res.status === 404) {
           // Subscription expired — clean it up
           expiredEndpoints.push(sub.endpoint);
         }
+      } catch (err) {
         failed++;
       }
     }
