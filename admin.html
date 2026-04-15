@@ -3,97 +3,90 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AFYA Admin — Analytics</title>
+  <title>AFYA — Founder Dashboard</title>
+  <meta name="robots" content="noindex, nofollow"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: -apple-system, 'DM Sans', sans-serif; background:#F0F4F3; color:#0D2B26; min-height:100vh; }
-
-    /* ── Auth overlay ── */
-    #auth-overlay {
-      position:fixed; inset:0; background:#0D7E6A;
-      display:flex; align-items:center; justify-content:center; z-index:100;
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --green: #0D7E6A; --green-dark: #0A5E50; --green-light: #E8F5EE;
+      --amber: #F5A623; --text: #0D2B26; --muted: #6B8C88;
+      --bg: #F0F5F3; --card: white;
     }
-    #auth-box { background:white; border-radius:20px; padding:40px; width:340px; text-align:center; }
-    #auth-box h1 { font-size:28px; font-weight:900; color:#0D7E6A; margin-bottom:6px; }
-    #auth-box p { color:#6B8C88; font-size:14px; margin-bottom:24px; }
-    #auth-input {
-      width:100%; padding:14px 16px; border:2px solid #E8F5F2; border-radius:12px;
-      font-size:16px; outline:none; margin-bottom:12px;
-      transition:border-color 0.2s;
-    }
-    #auth-input:focus { border-color:#0D7E6A; }
-    #auth-btn {
-      width:100%; padding:14px; background:#0D7E6A; color:white;
-      border:none; border-radius:12px; font-size:16px; font-weight:700;
-      cursor:pointer; transition:opacity 0.2s;
-    }
-    #auth-btn:hover { opacity:0.9; }
-    #auth-error { color:#E05252; font-size:13px; margin-top:8px; }
+    body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    /* ── Layout ── */
-    header {
-      background:#0D7E6A; color:white; padding:20px 32px;
-      display:flex; align-items:center; justify-content:space-between;
-    }
-    header h1 { font-size:22px; font-weight:900; }
-    header span { font-size:13px; opacity:0.75; }
-    #refresh-btn {
-      background:rgba(255,255,255,0.2); border:none; color:white;
-      padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;
-    }
-    #refresh-btn:hover { background:rgba(255,255,255,0.3); }
-    main { max-width:1200px; margin:0 auto; padding:32px 24px; }
+    /* AUTH */
+    #auth-overlay { position:fixed; inset:0; background: linear-gradient(135deg, var(--green), var(--green-dark)); display:flex; align-items:center; justify-content:center; z-index:100; }
+    #auth-box { background:white; border-radius:24px; padding:48px 40px; width:360px; text-align:center; box-shadow:0 32px 80px rgba(0,0,0,0.2); }
+    #auth-box h1 { font-size:32px; font-weight:900; color:var(--green); margin-bottom:4px; }
+    #auth-box p { color:var(--muted); font-size:14px; margin-bottom:28px; }
+    #auth-input { width:100%; padding:14px 16px; border:2px solid var(--green-light); border-radius:12px; font-size:16px; outline:none; font-family:inherit; margin-bottom:12px; transition:border-color 0.2s; }
+    #auth-input:focus { border-color:var(--green); }
+    #auth-btn { width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; }
+    #auth-error { color:#E05252; font-size:13px; margin-top:10px; }
 
-    /* ── KPI cards ── */
-    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:32px; }
-    .kpi-card {
-      background:white; border-radius:16px; padding:20px 24px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.06);
-    }
-    .kpi-card .label { font-size:12px; color:#6B8C88; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
-    .kpi-card .value { font-size:36px; font-weight:900; color:#0D7E6A; margin:6px 0 2px; }
-    .kpi-card .sub   { font-size:12px; color:#6B8C88; }
+    /* HEADER */
+    header { background: linear-gradient(135deg, var(--green), var(--green-dark)); color:white; padding:20px 32px; display:flex; align-items:center; justify-content:space-between; }
+    .header-left h1 { font-size:20px; font-weight:900; }
+    .header-left span { font-size:12px; opacity:0.7; }
+    #refresh-btn { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; padding:8px 18px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; transition:background 0.2s; }
+    #refresh-btn:hover { background:rgba(255,255,255,0.25); }
 
-    /* ── Charts grid ── */
-    .charts-grid { display:grid; grid-template-columns:2fr 1fr; gap:20px; margin-bottom:24px; }
-    @media(max-width:768px) { .charts-grid { grid-template-columns:1fr; } }
-    .chart-card {
-      background:white; border-radius:16px; padding:24px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.06);
-    }
-    .chart-card h2 { font-size:15px; font-weight:700; margin-bottom:16px; color:#0D2B26; }
+    /* LAYOUT */
+    main { max-width:1280px; margin:0 auto; padding:28px 24px 60px; }
 
-    /* ── Events + funnel ── */
-    .bottom-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:24px; }
-    @media(max-width:900px) { .bottom-grid { grid-template-columns:1fr 1fr; } }
-    @media(max-width:600px) { .bottom-grid { grid-template-columns:1fr; } }
+    /* SECTION LABELS */
+    .section-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px; margin-top:28px; }
 
-    /* ── Table ── */
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th { text-align:left; padding:10px 12px; color:#6B8C88; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #E8F5F2; }
-    td { padding:10px 12px; border-bottom:1px solid #F5FAF9; }
-    .badge {
-      display:inline-block; padding:3px 8px; border-radius:100px; font-size:11px; font-weight:600;
-    }
-    .badge.premium { background:#FFF3CD; color:#8A6200; }
-    .badge.free    { background:#E8F5F2; color:#0D7E6A; }
+    /* KPI GRID */
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:14px; }
+    .kpi-card { background:var(--card); border-radius:16px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .kpi-card .k-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+    .kpi-card .k-value { font-size:34px; font-weight:900; color:var(--green); line-height:1; }
+    .kpi-card .k-sub   { font-size:12px; color:var(--muted); margin-top:4px; }
+    .kpi-card.amber .k-value { color:var(--amber); }
+    .kpi-card.highlight { background: linear-gradient(135deg, var(--green), var(--green-dark)); }
+    .kpi-card.highlight .k-label, .kpi-card.highlight .k-value, .kpi-card.highlight .k-sub { color:white; }
+    .kpi-card.highlight .k-value { font-size:38px; }
+    .kpi-card.highlight .k-label { opacity:0.8; }
+    .kpi-card.highlight .k-sub { opacity:0.75; }
 
-    /* ── Funnel ── */
-    .funnel-item { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #F5FAF9; }
-    .funnel-item:last-child { border-bottom:none; }
-    .funnel-label { font-size:14px; }
-    .funnel-val { font-size:20px; font-weight:700; color:#0D7E6A; }
+    /* FUNNEL */
+    .funnel { display:flex; gap:0; align-items:stretch; }
+    .funnel-step { flex:1; background:var(--card); padding:18px 20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); position:relative; }
+    .funnel-step:first-child { border-radius:16px 0 0 16px; }
+    .funnel-step:last-child  { border-radius:0 16px 16px 0; }
+    .funnel-step + .funnel-step::before { content:"→"; position:absolute; left:-12px; top:50%; transform:translateY(-50%); font-size:18px; color:var(--muted); z-index:1; }
+    .funnel-step .f-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+    .funnel-step .f-value { font-size:28px; font-weight:900; color:var(--green); }
+    .funnel-step .f-rate  { font-size:12px; color:var(--amber); font-weight:700; margin-top:2px; }
 
-    /* ── Event list ── */
-    .event-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F5FAF9; }
-    .event-item:last-child { border-bottom:none; }
-    .event-name { font-size:13px; color:#0D2B26; }
-    .event-count { font-size:16px; font-weight:700; color:#0D7E6A; }
+    /* CHARTS */
+    .charts-row { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+    @media(max-width:768px) { .charts-row { grid-template-columns:1fr; } .funnel { flex-direction:column; } .funnel-step { border-radius:12px !important; } .funnel-step + .funnel-step::before { display:none; } }
+    .chart-card { background:var(--card); border-radius:16px; padding:22px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .chart-card h3 { font-size:13px; font-weight:700; color:var(--text); margin-bottom:16px; }
+    .chart-card.full { grid-column:1/-1; }
 
-    #last-updated { font-size:12px; color:#6B8C88; margin-bottom:24px; }
-    .loading-msg { text-align:center; padding:60px; color:#6B8C88; }
-    .error-msg { text-align:center; padding:60px; color:#E05252; }
+    /* EVENTS TABLE */
+    .events-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px; }
+    .event-row { background:var(--card); border-radius:12px; padding:14px 18px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
+    .event-row .e-name { font-size:13px; font-weight:500; color:var(--text); }
+    .event-row .e-count { font-size:18px; font-weight:900; color:var(--green); }
+
+    /* RECENT SIGNUPS */
+    .signup-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--green-light); }
+    .signup-row:last-child { border-bottom:none; }
+    .signup-avatar { width:36px; height:36px; border-radius:18px; background:var(--green); color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
+    .signup-info { flex:1; }
+    .signup-info .s-cond { font-size:13px; font-weight:600; }
+    .signup-info .s-date { font-size:11px; color:var(--muted); }
+    .signup-badge { font-size:10px; font-weight:700; padding:3px 8px; border-radius:50px; }
+    .signup-badge.premium { background:#FFF7ED; color:#C2410C; }
+    .signup-badge.free { background:var(--green-light); color:var(--green); }
+
+    .loading { text-align:center; padding:60px; color:var(--muted); font-size:15px; }
   </style>
 </head>
 <body>
@@ -101,235 +94,260 @@
 <!-- Auth overlay -->
 <div id="auth-overlay">
   <div id="auth-box">
-    <h1>🏥 AFYA</h1>
-    <p>Admin Analytics Dashboard</p>
-    <input id="auth-input" type="password" placeholder="Enter admin secret" autocomplete="current-password"/>
-    <button id="auth-btn">Unlock Dashboard</button>
+    <h1>AFYA</h1>
+    <p>Founder dashboard — enter your admin password</p>
+    <input id="auth-input" type="password" placeholder="Admin password" onkeydown="if(event.key==='Enter') login()"/>
+    <button id="auth-btn" onclick="login()">Sign in →</button>
     <div id="auth-error"></div>
   </div>
 </div>
 
+<!-- Header -->
 <header>
-  <div>
-    <h1>🏥 AFYA Analytics</h1>
+  <div class="header-left">
+    <h1>AFYA Founder Dashboard</h1>
+    <span id="last-updated">Loading…</span>
   </div>
-  <div style="display:flex;align-items:center;gap:12px;">
-    <span id="last-ts">—</span>
-    <button id="refresh-btn" onclick="loadData()">↻ Refresh</button>
-  </div>
+  <button id="refresh-btn" onclick="loadData()">↻ Refresh</button>
 </header>
 
-<main id="main-content" style="display:none;">
-  <div id="loading-state" class="loading-msg">Loading analytics…</div>
-  <div id="error-state"   class="error-msg"   style="display:none;"></div>
-  <div id="dashboard"     style="display:none;">
+<main id="main" style="display:none">
 
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="label">Total Users</div>
-        <div class="value" id="kpi-total">—</div>
-        <div class="sub">All-time signups</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">Premium Users</div>
-        <div class="value" id="kpi-premium">—</div>
-        <div class="sub" id="kpi-conv">—% conversion</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">Vitals Logged</div>
-        <div class="value" id="kpi-vitals">—</div>
-        <div class="sub">Health readings</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">Referrals</div>
-        <div class="value" id="kpi-referrals">—</div>
-        <div class="sub" id="kpi-months">—</div>
-      </div>
+  <!-- NORTH STAR METRICS -->
+  <div class="section-title">North Star</div>
+  <div class="kpi-grid">
+    <div class="kpi-card highlight">
+      <div class="k-label">Total Users</div>
+      <div class="k-value" id="kpi-total">—</div>
+      <div class="k-sub" id="kpi-goal">Goal: 100 paying users</div>
     </div>
-
-    <!-- Signups + DAU charts -->
-    <div class="charts-grid">
-      <div class="chart-card">
-        <h2>📈 Daily Signups (last 14 days)</h2>
-        <canvas id="signups-chart" height="100"></canvas>
-      </div>
-      <div class="chart-card">
-        <h2>🍩 Conditions</h2>
-        <canvas id="conditions-chart" height="160"></canvas>
-      </div>
+    <div class="kpi-card amber">
+      <div class="k-label">Premium Users</div>
+      <div class="k-value" id="kpi-premium">—</div>
+      <div class="k-sub" id="kpi-conv">—% conversion</div>
     </div>
-
-    <!-- DAU chart (full width) -->
-    <div class="chart-card" style="margin-bottom:24px;">
-      <h2>👥 Daily Active Users (last 14 days)</h2>
-      <canvas id="dau-chart" height="60"></canvas>
+    <div class="kpi-card">
+      <div class="k-label">Email Leads</div>
+      <div class="k-value" id="kpi-leads">—</div>
+      <div class="k-sub">Landing page captures</div>
     </div>
-
-    <!-- Events + Funnel + Recents -->
-    <div class="bottom-grid">
-
-      <!-- Event counts -->
-      <div class="chart-card">
-        <h2>⚡ Events (last 14 days)</h2>
-        <div id="event-list"></div>
-      </div>
-
-      <!-- Paystack funnel -->
-      <div class="chart-card">
-        <h2>💳 Payment Funnel</h2>
-        <div id="funnel-list"></div>
-      </div>
-
-      <!-- Recent signups -->
-      <div class="chart-card">
-        <h2>🆕 Recent Signups</h2>
-        <table>
-          <thead><tr><th>Date</th><th>Condition</th><th>Plan</th></tr></thead>
-          <tbody id="recents-table"></tbody>
-        </table>
-      </div>
-
+    <div class="kpi-card">
+      <div class="k-label">Referrals Made</div>
+      <div class="k-value" id="kpi-referrals">—</div>
+      <div class="k-sub" id="kpi-months">— free months earned</div>
     </div>
-  </div><!-- /dashboard -->
+    <div class="kpi-card">
+      <div class="k-label">Report Cards Shared</div>
+      <div class="k-value" id="kpi-reports">—</div>
+      <div class="k-sub">With doctors</div>
+    </div>
+    <div class="kpi-card">
+      <div class="k-label">Streak Shares</div>
+      <div class="k-value" id="kpi-streaks">—</div>
+      <div class="k-sub">Viral sharing events</div>
+    </div>
+    <div class="kpi-card">
+      <div class="k-label">Active Medications</div>
+      <div class="k-value" id="kpi-meds">—</div>
+      <div class="k-sub">Across all users</div>
+    </div>
+    <div class="kpi-card">
+      <div class="k-label">Vitals Logged</div>
+      <div class="k-value" id="kpi-vitals">—</div>
+      <div class="k-sub">Blood sugar, BP, weight</div>
+    </div>
+  </div>
+
+  <!-- ONBOARDING FUNNEL -->
+  <div class="section-title" style="margin-top:32px">Onboarding Funnel</div>
+  <div class="funnel" id="funnel-row">
+    <div class="funnel-step">
+      <div class="f-label">Signed Up</div>
+      <div class="f-value" id="f-signups">—</div>
+      <div class="f-rate">100%</div>
+    </div>
+    <div class="funnel-step">
+      <div class="f-label">Completed Onboarding</div>
+      <div class="f-value" id="f-onboard">—</div>
+      <div class="f-rate" id="f-onboard-rate">—%</div>
+    </div>
+    <div class="funnel-step">
+      <div class="f-label">Upgrade Clicked</div>
+      <div class="f-value" id="f-upgrade">—</div>
+      <div class="f-rate" id="f-upgrade-rate">—%</div>
+    </div>
+    <div class="funnel-step">
+      <div class="f-label">Payment Complete</div>
+      <div class="f-value" id="f-paid">—</div>
+      <div class="f-rate" id="f-paid-rate">—%</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="section-title">Growth</div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>New Signups — Last 14 Days</h3>
+      <canvas id="signups-chart" height="100"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Users by Condition</h3>
+      <canvas id="conditions-chart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- DAU CHART -->
+  <div class="section-title">Engagement</div>
+  <div class="chart-card full" style="margin-bottom:16px">
+    <h3>Daily Active Users — Last 14 Days</h3>
+    <canvas id="dau-chart" height="60"></canvas>
+  </div>
+
+  <!-- EVENT COUNTS -->
+  <div class="section-title">Product Events (last 14 days)</div>
+  <div class="events-grid" id="events-grid"></div>
+
+  <!-- RECENT SIGNUPS -->
+  <div class="section-title" style="margin-top:28px">Recent Signups</div>
+  <div class="chart-card">
+    <div id="recent-signups"></div>
+  </div>
+
 </main>
 
 <script>
-  let adminSecret = "";
-  let signupsChart, conditionsChart, dauChart;
+let secret = null;
+let charts = {};
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  document.getElementById("auth-btn").onclick = tryAuth;
-  document.getElementById("auth-input").addEventListener("keydown", e => { if (e.key === "Enter") tryAuth(); });
+const CONDITION_LABELS = { diabetes:"Diabetes", hypertension:"Hypertension", maternal:"Pregnancy", wellness:"Wellness", unknown:"Unknown" };
+const CONDITION_COLORS = { diabetes:"#0D7E6A", hypertension:"#3730A3", maternal:"#BE185D", wellness:"#C2410C", unknown:"#9CA3AF" };
+const EVENT_LABELS = {
+  app_open:"App Opens", chat_message_sent:"AI Chats", vital_logged:"Vitals Logged",
+  onboarding_complete:"Onboardings", payment_initiated:"Upgrade Clicks",
+  payment_complete:"Payments", referral_applied:"Referrals Applied",
+  streak_shared:"Streak Shares", report_shared:"Report Card Shares",
+  weekly_digest_viewed:"Digest Views",
+};
 
-  function tryAuth() {
-    const val = document.getElementById("auth-input").value.trim();
-    if (!val) return;
-    adminSecret = val;
-    document.getElementById("auth-overlay").style.display = "none";
-    document.getElementById("main-content").style.display = "block";
-    loadData();
-  }
+function login() {
+  const val = document.getElementById("auth-input").value.trim();
+  if (!val) return;
+  secret = val;
+  loadData();
+}
 
-  // ── Data loader ──────────────────────────────────────────────────────────
-  async function loadData() {
-    document.getElementById("loading-state").style.display = "block";
-    document.getElementById("dashboard").style.display = "none";
-    document.getElementById("error-state").style.display = "none";
-
-    try {
-      const res = await fetch(`/.netlify/functions/get-analytics?secret=${encodeURIComponent(adminSecret)}`, {
-        headers: { "x-admin-secret": adminSecret },
-      });
-      if (res.status === 401) {
-        document.getElementById("loading-state").style.display = "none";
-        document.getElementById("auth-overlay").style.display = "flex";
-        document.getElementById("auth-error").textContent = "Incorrect password.";
-        return;
-      }
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const data = await res.json();
-      render(data);
-    } catch (err) {
-      document.getElementById("loading-state").style.display = "none";
-      document.getElementById("error-state").style.display = "block";
-      document.getElementById("error-state").textContent = "Failed to load: " + err.message;
+async function loadData() {
+  document.getElementById("refresh-btn").textContent = "Loading…";
+  try {
+    const res = await fetch(`/.netlify/functions/get-analytics`, {
+      headers: { "x-admin-secret": secret }
+    });
+    if (res.status === 401) {
+      document.getElementById("auth-error").textContent = "Wrong password.";
+      secret = null; return;
     }
+    const d = await res.json();
+    document.getElementById("auth-overlay").style.display = "none";
+    document.getElementById("main").style.display = "block";
+    render(d);
+  } catch(e) {
+    document.getElementById("auth-error").textContent = "Error connecting. Try again.";
   }
+  document.getElementById("refresh-btn").textContent = "↻ Refresh";
+}
 
-  // ── Renderer ─────────────────────────────────────────────────────────────
-  function render(d) {
-    document.getElementById("loading-state").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
+function render(d) {
+  const o = d.overview;
+  document.getElementById("last-updated").textContent = `Updated ${new Date().toLocaleTimeString()}`;
 
-    // KPIs
-    document.getElementById("kpi-total").textContent     = d.overview.totalUsers;
-    document.getElementById("kpi-premium").textContent   = d.overview.premiumUsers;
-    document.getElementById("kpi-conv").textContent      = `${d.overview.conversionRate}% conversion`;
-    document.getElementById("kpi-vitals").textContent    = d.overview.vitalsLogged;
-    document.getElementById("kpi-referrals").textContent = d.overview.totalReferrals;
-    document.getElementById("kpi-months").textContent    = `${d.overview.freeMonths} free months earned`;
-    document.getElementById("last-ts").textContent       = "Updated: " + new Date(d.generatedAt).toLocaleTimeString();
+  // KPIs
+  document.getElementById("kpi-total").textContent     = o.totalUsers;
+  document.getElementById("kpi-premium").textContent   = o.premiumUsers;
+  document.getElementById("kpi-conv").textContent      = `${o.conversionRate}% conversion`;
+  document.getElementById("kpi-leads").textContent     = o.emailLeads ?? "—";
+  document.getElementById("kpi-referrals").textContent = o.totalReferrals;
+  document.getElementById("kpi-months").textContent    = `${o.freeMonths} free months earned`;
+  document.getElementById("kpi-reports").textContent   = o.reportShares ?? 0;
+  document.getElementById("kpi-streaks").textContent   = o.streakShares ?? 0;
+  document.getElementById("kpi-meds").textContent      = o.activeMeds ?? "—";
+  document.getElementById("kpi-vitals").textContent    = o.vitalsLogged;
+  document.getElementById("kpi-goal").textContent      = `${o.premiumUsers}/100 paying users`;
 
-    // Signups chart
-    const signupDays    = Object.keys(d.signupsByDay).sort();
-    const signupCounts  = signupDays.map(k => d.signupsByDay[k]);
-    if (signupsChart) signupsChart.destroy();
-    signupsChart = new Chart(document.getElementById("signups-chart"), {
-      type: "bar",
-      data: {
-        labels: signupDays.map(d => d.slice(5)), // MM-DD
-        datasets: [{ label:"Signups", data:signupCounts, backgroundColor:"#0D7E6A", borderRadius:6 }],
-      },
-      options: { plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:1}} } },
-    });
+  // Funnel
+  document.getElementById("f-signups").textContent      = o.totalUsers;
+  document.getElementById("f-onboard").textContent      = o.onboardings ?? "—";
+  document.getElementById("f-onboard-rate").textContent = `${o.onboardRate ?? "—"}%`;
+  document.getElementById("f-upgrade").textContent      = d.paystackFunnel.initiated;
+  document.getElementById("f-upgrade-rate").textContent = o.totalUsers > 0 ? `${((d.paystackFunnel.initiated/o.totalUsers)*100).toFixed(1)}%` : "—%";
+  document.getElementById("f-paid").textContent         = d.paystackFunnel.completed;
+  document.getElementById("f-paid-rate").textContent    = `${d.paystackFunnel.paystackConversion}% checkout`;
 
-    // Conditions doughnut
-    const condLabels = Object.keys(d.conditionBreakdown);
-    const condValues = condLabels.map(k => d.conditionBreakdown[k]);
-    const condColors = ["#0D7E6A","#F5A623","#E05252","#5B9CF6","#A78BFA"];
-    if (conditionsChart) conditionsChart.destroy();
-    conditionsChart = new Chart(document.getElementById("conditions-chart"), {
-      type: "doughnut",
-      data: {
-        labels: condLabels,
-        datasets: [{ data:condValues, backgroundColor:condColors.slice(0,condLabels.length), borderWidth:2 }],
-      },
-      options: { plugins:{ legend:{ position:"bottom", labels:{ font:{size:11} } } }, cutout:"65%" },
-    });
+  // Signups chart
+  const signupDays    = Object.keys(d.signupsByDay).sort();
+  const signupCounts  = signupDays.map(k => d.signupsByDay[k]);
+  if (charts.signups) charts.signups.destroy();
+  charts.signups = new Chart(document.getElementById("signups-chart"), {
+    type:"bar",
+    data:{ labels:signupDays.map(d => d.slice(5)), datasets:[{ label:"Signups", data:signupCounts, backgroundColor:"#0D7E6A", borderRadius:6 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:1}}, x:{grid:{display:false}} } }
+  });
 
-    // DAU chart
-    const dauDays   = d.dauSeries.map(x => x.date.slice(5));
-    const dauCounts = d.dauSeries.map(x => x.dau);
-    if (dauChart) dauChart.destroy();
-    dauChart = new Chart(document.getElementById("dau-chart"), {
-      type: "line",
-      data: {
-        labels: dauDays,
-        datasets: [{
-          label:"DAU", data:dauCounts,
-          borderColor:"#0D7E6A", backgroundColor:"rgba(13,126,106,0.1)",
-          fill:true, tension:0.3, pointRadius:3,
-        }],
-      },
-      options: { plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:1}} } },
-    });
+  // Conditions chart
+  const condKeys   = Object.keys(d.conditionBreakdown);
+  const condVals   = condKeys.map(k => d.conditionBreakdown[k]);
+  const condLabels = condKeys.map(k => CONDITION_LABELS[k] || k);
+  const condColors = condKeys.map(k => CONDITION_COLORS[k] || "#9CA3AF");
+  if (charts.conditions) charts.conditions.destroy();
+  charts.conditions = new Chart(document.getElementById("conditions-chart"), {
+    type:"doughnut",
+    data:{ labels:condLabels, datasets:[{ data:condVals, backgroundColor:condColors, borderWidth:2, borderColor:"white" }] },
+    options:{ plugins:{ legend:{ position:"bottom", labels:{ font:{size:12}, padding:12 } } }, cutout:"60%" }
+  });
 
-    // Event list
-    const eventOrder = ["app_open","chat_message_sent","vital_logged","onboarding_complete","payment_initiated","payment_complete","referral_applied","weekly_digest_viewed"];
-    const eventLabels = {
-      app_open:"App Opens", chat_message_sent:"Chat Messages",
-      vital_logged:"Vitals Logged", onboarding_complete:"Onboardings",
-      payment_initiated:"Payments Initiated", payment_complete:"Payments Complete",
-      referral_applied:"Referrals Applied", weekly_digest_viewed:"Digest Views",
-    };
-    const el = document.getElementById("event-list");
-    el.innerHTML = "";
-    eventOrder.forEach(k => {
-      const n = d.eventCounts[k] || 0;
-      el.innerHTML += `<div class="event-item"><span class="event-name">${eventLabels[k]||k}</span><span class="event-count">${n}</span></div>`;
-    });
+  // DAU chart
+  const dauDays   = d.dauSeries.map(x => x.date.slice(5));
+  const dauCounts = d.dauSeries.map(x => x.dau);
+  if (charts.dau) charts.dau.destroy();
+  charts.dau = new Chart(document.getElementById("dau-chart"), {
+    type:"line",
+    data:{ labels:dauDays, datasets:[{ label:"DAU", data:dauCounts, borderColor:"#0D7E6A", backgroundColor:"rgba(13,126,106,0.08)", tension:0.4, fill:true, pointRadius:3 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:1}}, x:{grid:{display:false}} } }
+  });
 
-    // Paystack funnel
-    const fl = document.getElementById("funnel-list");
-    const f  = d.paystackFunnel;
-    fl.innerHTML = `
-      <div class="funnel-item"><span class="funnel-label">Upgrade clicked</span><span class="funnel-val">${f.initiated}</span></div>
-      <div class="funnel-item"><span class="funnel-label">Payment complete</span><span class="funnel-val">${f.completed}</span></div>
-      <div class="funnel-item"><span class="funnel-label">Checkout conversion</span><span class="funnel-val">${f.paystackConversion}%</span></div>
-    `;
+  // Events grid
+  const evGrid = document.getElementById("events-grid");
+  evGrid.innerHTML = "";
+  const displayEvents = Object.keys(EVENT_LABELS);
+  displayEvents.forEach(ev => {
+    const count = d.eventCounts[ev] || 0;
+    evGrid.innerHTML += `<div class="event-row"><span class="e-name">${EVENT_LABELS[ev]}</span><span class="e-count">${count}</span></div>`;
+  });
 
-    // Recent signups
-    const tbody = document.getElementById("recents-table");
-    tbody.innerHTML = "";
-    (d.recentSignups || []).forEach(r => {
-      const date = r.created_at ? r.created_at.slice(0,10) : "—";
-      const plan = r.is_premium
-        ? '<span class="badge premium">Premium</span>'
-        : '<span class="badge free">Free</span>';
-      tbody.innerHTML += `<tr><td>${date}</td><td>${r.condition||"—"}</td><td>${plan}</td></tr>`;
+  // Recent signups
+  const recDiv = document.getElementById("recent-signups");
+  recDiv.innerHTML = "";
+  if (!d.recentSignups?.length) {
+    recDiv.innerHTML = `<p style="color:var(--muted);font-size:14px;padding:8px 0">No signups yet.</p>`;
+  } else {
+    d.recentSignups.forEach(u => {
+      const cond  = CONDITION_LABELS[u.condition] || u.condition || "Unknown";
+      const icon  = {diabetes:"💉",hypertension:"❤️",maternal:"🤰",wellness:"🏃"}[u.condition] || "👤";
+      const date  = new Date(u.created_at).toLocaleDateString("en-NG", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+      const badge = u.is_premium ? `<span class="signup-badge premium">⭐ Premium</span>` : `<span class="signup-badge free">Free</span>`;
+      recDiv.innerHTML += `
+        <div class="signup-row">
+          <div class="signup-avatar">${icon}</div>
+          <div class="signup-info">
+            <div class="s-cond">${cond}</div>
+            <div class="s-date">${date}</div>
+          </div>
+          ${badge}
+        </div>`;
     });
   }
+}
+
+document.getElementById("auth-input").addEventListener("keydown", e => { if(e.key==="Enter") login(); });
 </script>
 </body>
 </html>

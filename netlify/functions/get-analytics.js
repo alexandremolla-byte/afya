@@ -99,6 +99,28 @@ exports.handler = async (event) => {
     );
     const vitalsCount = parseInt(vitRes.headers.get("content-range")?.split("/")[1] || "0", 10);
 
+    // ── 5. Email leads ────────────────────────────────────────────────────
+    const leadsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/email_leads?select=id,created_at&unsubscribed=eq.false`,
+      { headers: { ...sbHeaders, Prefer: "count=exact", "Range-Unit": "items", Range: "0-0" } }
+    );
+    const emailLeads = parseInt(leadsRes.headers.get("content-range")?.split("/")[1] || "0", 10);
+
+    // ── 6. Medications count (active) ─────────────────────────────────────
+    const medsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/medications?select=id&active=eq.true`,
+      { headers: { ...sbHeaders, Prefer: "count=exact", "Range-Unit": "items", Range: "0-0" } }
+    );
+    const activeMeds = parseInt(medsRes.headers.get("content-range")?.split("/")[1] || "0", 10);
+
+    // ── 7. Onboarding funnel ──────────────────────────────────────────────
+    const onboardings  = eventCounts["onboarding_complete"] || 0;
+    const onboardRate  = totalUsers > 0 ? ((onboardings / totalUsers) * 100).toFixed(1) : "0.0";
+
+    // ── 8. Sharing metrics ────────────────────────────────────────────────
+    const reportShares = eventCounts["report_shared"] || 0;
+    const streakShares = eventCounts["streak_shared"]  || 0;
+
     return {
       statusCode: 200,
       headers,
@@ -106,6 +128,8 @@ exports.handler = async (event) => {
         overview: {
           totalUsers, premiumUsers, conversionRate,
           totalReferrals, freeMonths, vitalsLogged: vitalsCount,
+          emailLeads, activeMeds, reportShares, streakShares,
+          onboardings, onboardRate,
         },
         conditionBreakdown: conditionCounts,
         signupsByDay,
