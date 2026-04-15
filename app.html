@@ -1350,10 +1350,21 @@ function ShareStreakModal({ streak, profile, referralCode, onClose }) {
 function Profile({ profile, referralState, isPremium, onShowUpgrade, userId }) {
   const [signingOut, setSigningOut]       = useState(false);
   const [showReport, setShowReport]       = useState(false);
+  const [showInstall, setShowInstall]     = useState(false);
   const [notifStatus, setNotifStatus]     = useState(
     "Notification" in window ? Notification.permission : "unsupported"
   );
   const handleSignOut = async () => { setSigningOut(true); await sb.auth.signOut(); };
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isInstalled = window.matchMedia("(display-mode: standalone)").matches;
+
+  const handleInstall = () => {
+    if (isInstalled) return; // already installed
+    if (isIOS) { setShowInstall(true); return; }
+    if (window.deferredPrompt) { window.installPWA(); return; }
+    setShowInstall(true); // fallback — show manual instructions
+  };
   const handleEnableNotifs = async () => {
     const ok = await subscribeToPush(userId);
     setNotifStatus(ok ? "granted" : Notification.permission);
@@ -1403,6 +1414,18 @@ function Profile({ profile, referralState, isPremium, onShowUpgrade, userId }) {
         </div>
       )}
 
+      {/* Add to Home Screen */}
+      {!isInstalled && (
+        <button onClick={handleInstall} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${BRAND.color.primary}`, background:BRAND.color.primary, color:"white", fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+          📲 Add AFYA to Home Screen
+        </button>
+      )}
+      {isInstalled && (
+        <div style={{ textAlign:"center", padding:"10px", marginBottom:12, fontSize:14, color:BRAND.color.primary, fontWeight:600 }}>
+          ✅ AFYA is installed on your device
+        </div>
+      )}
+
       {/* Share Report Card */}
       <button onClick={() => setShowReport(true)} style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${BRAND.color.primary}`, background:BRAND.color.light, color:BRAND.color.primary, fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
         📋 Share Report Card with Doctor
@@ -1427,6 +1450,54 @@ function Profile({ profile, referralState, isPremium, onShowUpgrade, userId }) {
 
       {showReport && (
         <ShareReportModal profile={profile} userId={userId} onClose={() => setShowReport(false)} />
+      )}
+
+      {/* Install instructions modal (iOS + fallback) */}
+      {showInstall && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:1000 }} onClick={() => setShowInstall(false)}>
+          <div style={{ background:"white", borderRadius:"24px 24px 0 0", padding:"28px 24px 40px", width:"100%", maxWidth:480 }} onClick={e => e.stopPropagation()}>
+            <div style={{ width:40, height:4, background:"#E0E0E0", borderRadius:4, margin:"0 auto 20px" }}/>
+            <p style={{ fontSize:20, fontWeight:800, marginBottom:6 }}>📲 Add to Home Screen</p>
+            <p style={{ fontSize:14, color:BRAND.color.muted, marginBottom:24 }}>Follow these steps to install AFYA on your phone:</p>
+            {isIOS ? (
+              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                {[
+                  ["1", "Open this page in Safari", "Chrome on iPhone doesn't support installation"],
+                  ["2", "Tap the Share button", "The □↑ icon at the bottom of Safari"],
+                  ["3", "Tap \"Add to Home Screen\"", "Scroll down in the share sheet to find it"],
+                  ["4", "Tap \"Add\"", "AFYA appears on your home screen instantly"],
+                ].map(([num, title, desc]) => (
+                  <div key={num} style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+                    <div style={{ width:32, height:32, borderRadius:16, background:BRAND.color.primary, color:"white", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:15, flexShrink:0 }}>{num}</div>
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:14 }}>{title}</div>
+                      <div style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                {[
+                  ["1", "Tap the ⋮ menu in Chrome", "Top-right corner of your browser"],
+                  ["2", "Tap \"Add to Home Screen\"", "Or \"Install App\" depending on your Android version"],
+                  ["3", "Tap \"Add\"", "AFYA appears on your home screen instantly"],
+                ].map(([num, title, desc]) => (
+                  <div key={num} style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+                    <div style={{ width:32, height:32, borderRadius:16, background:BRAND.color.primary, color:"white", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:15, flexShrink:0 }}>{num}</div>
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:14 }}>{title}</div>
+                      <div style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowInstall(false)} style={{ width:"100%", marginTop:24, padding:"14px", borderRadius:14, border:"none", background:BRAND.color.light, color:BRAND.color.primary, fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+              Got it
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
