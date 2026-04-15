@@ -224,6 +224,13 @@
     .cta-btn { display: inline-block; background: var(--green); color: white; padding: 14px 32px; border-radius: 50px; font-weight: 700; font-size: 1rem; transition: background .2s; }
     .cta-btn:hover { background: var(--green-dark); }
 
+    /* CATEGORY FILTER */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+    .cat-pill { padding: 8px 18px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; border: 1.5px solid #D0E8E4; background: white; color: var(--muted); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .cat-pill:hover { border-color: var(--green); color: var(--green); }
+    .cat-pill.active { background: var(--green); color: white; border-color: var(--green); }
+    .article-card.hidden { display: none; }
+
     /* FOOTER */
     footer { background: var(--text); color: rgba(255,255,255,0.6); text-align: center; padding: 32px 24px; font-size: 0.875rem; }
     footer a { color: rgba(255,255,255,0.8); }
@@ -264,7 +271,14 @@
 
   <!-- ARTICLES -->
   <section class="articles-section">
-    <div class="section-label">Latest Articles</div>
+    <div class="filter-bar">
+      <button class="cat-pill active" data-cat="all">All</button>
+      <button class="cat-pill" data-cat="diabetes">Diabetes</button>
+      <button class="cat-pill" data-cat="hypertension">Hypertension</button>
+      <button class="cat-pill" data-cat="pregnancy">Pregnancy</button>
+      <button class="cat-pill" data-cat="wellness">Wellness</button>
+    </div>
+    <div class="section-label" id="articles-label">All Articles — 17</div>
 
     <article class="article-card">
       <div class="article-card-body">
@@ -541,5 +555,27 @@
     <p>© 2025 AFYA Health. Built for Nigeria.</p>
   </footer>
 
+<script>
+  const pills = document.querySelectorAll('.cat-pill');
+  const cards = document.querySelectorAll('.article-card');
+  const label = document.getElementById('articles-label');
+
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      pills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const cat = pill.dataset.cat;
+      let visible = 0;
+      cards.forEach(card => {
+        const badge = card.querySelector('.article-badge');
+        const match = cat === 'all' || (badge && badge.textContent.trim().toLowerCase() === cat);
+        card.classList.toggle('hidden', !match);
+        if (match) visible++;
+      });
+      const catLabel = cat === 'all' ? 'All Articles' : pill.textContent;
+      label.textContent = `${catLabel} — ${visible}`;
+    });
+  });
+</script>
 </body>
 </html>
