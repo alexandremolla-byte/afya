@@ -1453,7 +1453,8 @@ function AfyaApp() {
 
   const loadProfile = useCallback(async (userId) => {
     setProfileLoading(true);
-    const { data } = await sb.from("profiles").select("*").eq("id", userId).single();
+    const { data, error } = await sb.from("profiles").select("*").eq("id", userId).single();
+    if (error) console.error("loadProfile error:", error.message, error.code);
     if (data) {
       setProfile(data);
       setReferralState({
@@ -1585,11 +1586,19 @@ function AfyaApp() {
 
   const handleOnboardComplete = async (p) => {
     const myCode = generatePromoCode(p.name);
-    await sb.from("profiles").upsert({
+    const { error: upsertError } = await sb.from("profiles").upsert({
       id: session.user.id, name:p.name, age:p.age, condition:p.condition,
       weeks:p.weeks||null, applied_promo:p.appliedPromo||null,
       referral_code:myCode, friends_referred:0, free_months_earned:0,
     });
+    if (upsertError) {
+      console.error("Profile upsert failed:", upsertError);
+      // Force onboarded even if upsert fails so user isn't stuck looping
+      setProfile({ name:p.name, age:p.age, condition:p.condition, weeks:p.weeks, referral_code:myCode, friends_referred:0, free_months_earned:0 });
+      setReferralState({ myCode, friendsReferred:0, freeMonthsEarned:0 });
+      setOnboarded(true);
+      return;
+    }
     // Apply referral code if the user entered a valid one — grants 30 days Premium to both sides
     if (p.appliedPromo) {
       try {
