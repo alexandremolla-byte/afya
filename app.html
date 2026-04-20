@@ -631,6 +631,472 @@ function VitalLogCard({ profile, vitals, onLog }) {
   );
 }
 
+// ─── VITALS: SHARED HELPERS ──────────────────────────────────────────────
+// Free-tier features: 30-day self-logging with trend chart + monthly doctor-ready summary.
+// Data model follows health_logs table (type: blood_sugar | bp | weight; value/value2; logged_at).
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const VITAL_CFG = {
+  bp:          { label:"Blood Pressure", short:"BP",     emoji:"🫀", unit:"mmHg",  color:"#E05252", bg:"#FFF0F0", target:"Target: under 130/80" },
+  blood_sugar: { label:"Blood Sugar",    short:"Sugar",  emoji:"🩸", unit:"mg/dL", color:"#F5A623", bg:"#FFF6E6", target:"Fasting: 70–100 · Post-meal: under 180" },
+  weight:      { label:"Weight",         short:"Weight", emoji:"⚖️", unit:"kg",    color:"#6C5CE7", bg:"#F0EEFF", target:"Log weekly to track trend" },
+};
+
+const FLAG_STYLE = {
+  normal: { bg:"#E8F5F2", color:"#0D7E6A", label:"In range" },
+  watch:  { bg:"#FFF6E6", color:"#C87A10", label:"Watch" },
+  high:   { bg:"#FFF0F0", color:"#C03030", label:"High" },
+};
+
+function tsOf(v)           { return new Date(v.logged_at).getTime(); }
+function formatDay(ts)     { return new Date(ts).toLocaleDateString("en-NG", { day:"numeric", month:"short" }); }
+function daysAgoLabel(ts)  {
+  const diff = Math.floor((Date.now() - ts) / DAY_MS);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff < 7)   return `${diff} days ago`;
+  return formatDay(ts);
+}
+function classifyReading(v) {
+  if (v.type === "bp") {
+    if (v.value >= 160 || (v.value2 != null && v.value2 >= 100)) return "high";
+    if (v.value >= 140 || (v.value2 != null && v.value2 >= 90))  return "watch";
+    return "normal";
+  }
+  if (v.type === "blood_sugar") {
+    const isFasting = v.context === "fasting";
+    if (isFasting) {
+      if (v.value >= 126) return "high";
+      if (v.value >= 100) return "watch";
+      return "normal";
+    }
+    if (v.value >= 200) return "high";
+    if (v.value >= 140) return "watch";
+    return "normal";
+  }
+  return "normal";
+}
+
+// ─── TREND CHART ─────────────────────────────────────────────────────────
+function TrendChart({ readings, type }) {
+  const width = 320, height = 140, padX = 24, padY = 16;
+  const cutoff = Date.now() - 30 * DAY_MS;
+  const points = readings
+    .filter(r => r.type === type && tsOf(r) >= cutoff)
+    .map(r => ({ ...r, _ts: tsOf(r) }))
+    .sort((a, b) => a._ts - b._ts);
+
+  if (points.length === 0) {
+    return (
+      <div style={{ background:"white", borderRadius:14, padding:"28px 16px", textAlign:"center", color:BRAND.color.muted, fontSize:13, border:`1px dashed ${BRAND.color.light}` }}>
+        No {VITAL_CFG[type].label.toLowerCase()} readings yet. Add your first above.
+      </div>
+    );
+  }
+
+  const series = type === "bp"
+    ? [
+        { key:"sys", values: points.map(p => ({ ts: p._ts, v: p.value })),  color: VITAL_CFG.bp.color, label:"Systolic" },
+        { key:"dia", values: points.map(p => ({ ts: p._ts, v: p.value2 })).filter(p => p.v != null), color:"#C0395E", label:"Diastolic" },
+      ]
+    : [{ key:"v", values: points.map(p => ({ ts: p._ts, v: p.value })), color: VITAL_CFG[type].color, label: VITAL_CFG[type].label }];
+
+  const allValues = series.flatMap(s => s.values.map(x => x.v));
+  const minV = Math.min(...allValues), maxV = Math.max(...allValues);
+  const range = Math.max(1, maxV - minV);
+  const yPad = range * 0.18;
+  const yMin = minV - yPad, yMax = maxV + yPad;
+  const tMin = Math.min(...points.map(p => p._ts));
+  const tMax = Math.max(...points.map(p => p._ts));
+  const tRange = Math.max(1, tMax - tMin);
+  const xOf = (ts) => padX + ((ts - tMin) / tRange) * (width - padX * 2);
+  const yOf = (v)  => padY + (1 - (v - yMin) / (yMax - yMin)) * (height - padY * 2);
+
+  return (
+    <div style={{ background:"white", borderRadius:14, padding:"14px 10px 10px", boxShadow:"0 1px 8px rgba(0,0,0,0.05)" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"0 8px 8px" }}>
+        <p style={{ fontSize:11, color:BRAND.color.muted, fontWeight:700, letterSpacing:0.5 }}>LAST 30 DAYS</p>
+        <div style={{ display:"flex", gap:10 }}>
+          {series.map(s => (
+            <div key={s.key} style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <div style={{ width:10, height:3, background:s.color, borderRadius:2 }}/>
+              <span style={{ fontSize:11, color:BRAND.color.muted }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ display:"block" }}>
+        {[0.25, 0.5, 0.75].map(f => (
+          <line key={f} x1={padX} y1={padY + f * (height - padY * 2)} x2={width - padX} y2={padY + f * (height - padY * 2)} stroke={BRAND.color.light} strokeDasharray="2 3"/>
+        ))}
+        {series.map(s => {
+          if (s.values.length < 2) {
+            const v = s.values[0];
+            return <circle key={s.key} cx={xOf(v.ts)} cy={yOf(v.v)} r={4} fill={s.color}/>;
+          }
+          const d = s.values.map((p, i) => `${i===0?"M":"L"}${xOf(p.ts).toFixed(1)} ${yOf(p.v).toFixed(1)}`).join(" ");
+          return (
+            <g key={s.key}>
+              <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+              {s.values.map((p, i) => <circle key={i} cx={xOf(p.ts)} cy={yOf(p.v)} r={2.5} fill={s.color}/>)}
+            </g>
+          );
+        })}
+        <text x={4} y={padY + 4} fontSize="10" fill={BRAND.color.muted}>{Math.round(yMax)}</text>
+        <text x={4} y={height - padY + 4} fontSize="10" fill={BRAND.color.muted}>{Math.round(yMin)}</text>
+        <text x={padX} y={height - 2} fontSize="10" fill={BRAND.color.muted}>{formatDay(tMin)}</text>
+        <text x={width - padX - 30} y={height - 2} fontSize="10" fill={BRAND.color.muted}>{formatDay(tMax)}</text>
+      </svg>
+    </div>
+  );
+}
+
+// ─── FULL VITALS LOG SCREEN ──────────────────────────────────────────────
+function VitalsLog({ vitals, onLogVital, onDeleteVital, isPremium, onShowUpgrade }) {
+  const [activeType, setActiveType] = useState("bp");
+  const [bpSys, setBpSys]   = useState("");
+  const [bpDia, setBpDia]   = useState("");
+  const [sugarVal, setSugarVal] = useState("");
+  const [sugarCtx, setSugarCtx] = useState("fasting");
+  const [weightVal, setWeightVal] = useState("");
+  const [notes, setNotes]     = useState("");
+  const [saved, setSaved]     = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const cutoff30 = Date.now() - 30 * DAY_MS;
+  const typeReadings = (vitals || [])
+    .filter(v => v.type === activeType)
+    .map(r => ({ ...r, _ts: tsOf(r) }))
+    .sort((a, b) => b._ts - a._ts);
+  const within30 = typeReadings.filter(v => v._ts >= cutoff30);
+  const beyond30 = typeReadings.length - within30.length;
+
+  const stats = (() => {
+    if (within30.length === 0) return null;
+    if (activeType === "bp") {
+      const avgSys = Math.round(within30.reduce((s, r) => s + r.value, 0) / within30.length);
+      const diaVals = within30.filter(r => r.value2 != null).map(r => r.value2);
+      const avgDia = diaVals.length ? Math.round(diaVals.reduce((s, v) => s + v, 0) / diaVals.length) : null;
+      return { main: avgDia != null ? `${avgSys}/${avgDia}` : `${avgSys}`, unit:"mmHg", count: within30.length };
+    }
+    const avg = within30.reduce((s, r) => s + r.value, 0) / within30.length;
+    return { main: activeType === "weight" ? avg.toFixed(1) : Math.round(avg).toString(), unit: VITAL_CFG[activeType].unit, count: within30.length };
+  })();
+
+  const submit = async () => {
+    const trimmedNotes = notes.trim();
+    if (activeType === "bp") {
+      const s = parseInt(bpSys, 10), d = parseInt(bpDia, 10);
+      if (!s || !d || s < 60 || s > 260 || d < 40 || d > 160) return;
+      await onLogVital("bp", s, d, null, "mmHg", trimmedNotes);
+      setBpSys(""); setBpDia("");
+    } else if (activeType === "blood_sugar") {
+      const v = parseInt(sugarVal, 10);
+      if (!v || v < 30 || v > 600) return;
+      await onLogVital("blood_sugar", v, null, sugarCtx, "mg/dL", trimmedNotes);
+      setSugarVal("");
+    } else if (activeType === "weight") {
+      const v = parseFloat(weightVal);
+      if (!v || v < 20 || v > 300) return;
+      await onLogVital("weight", +v.toFixed(1), null, null, "kg", trimmedNotes);
+      setWeightVal("");
+    }
+    setNotes("");
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    await onDeleteVital(id);
+    setDeletingId(null);
+  };
+
+  const cfg = VITAL_CFG[activeType];
+
+  return (
+    <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
+      <h2 style={{ fontSize:22, fontWeight:800, marginBottom:4 }}>Log Vitals</h2>
+      <p style={{ fontSize:14, color:BRAND.color.muted, marginBottom:20 }}>Track BP, blood sugar and weight — free, every day.</p>
+
+      <div style={{ display:"flex", gap:8, marginBottom:18 }}>
+        {["bp","blood_sugar","weight"].map(key => {
+          const c = VITAL_CFG[key];
+          const active = activeType === key;
+          return (
+            <button key={key} onClick={() => setActiveType(key)}
+              style={{
+                flex:1, padding:"10px 8px", borderRadius:12,
+                border:`2px solid ${active ? c.color : BRAND.color.light}`,
+                background: active ? c.bg : "white",
+                cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit",
+              }}>
+              <span style={{ fontSize:22 }}>{c.emoji}</span>
+              <span style={{ fontSize:11, fontWeight:700, color: active ? c.color : BRAND.color.muted }}>{c.short}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {stats && (
+        <div style={{ background:`linear-gradient(135deg, ${cfg.color}, ${cfg.color}CC)`, borderRadius:16, padding:"18px 20px", color:"white", marginBottom:14 }}>
+          <p style={{ fontSize:11, opacity:0.85, fontWeight:700, letterSpacing:0.5 }}>30-DAY AVERAGE</p>
+          <p style={{ fontSize:34, fontWeight:900, lineHeight:1.1 }}>{stats.main} <span style={{ fontSize:13, fontWeight:500, opacity:0.85 }}>{stats.unit}</span></p>
+          <p style={{ fontSize:12, opacity:0.85, marginTop:4 }}>{stats.count} reading{stats.count!==1?"s":""} · {cfg.target}</p>
+        </div>
+      )}
+
+      <div style={{ marginBottom:18 }}>
+        <TrendChart readings={vitals||[]} type={activeType}/>
+      </div>
+
+      <div style={{ background:"white", borderRadius:16, padding:"16px", boxShadow:"0 1px 8px rgba(0,0,0,0.06)", marginBottom:18 }}>
+        <p style={{ fontSize:14, fontWeight:700, marginBottom:12 }}>Log a new reading</p>
+        {activeType==="bp" && (
+          <div style={{ display:"flex", gap:10, marginBottom:10 }}>
+            <input type="number" inputMode="numeric" placeholder="Systolic" value={bpSys} onChange={e => setBpSys(e.target.value)}
+              style={{ flex:1, padding:"12px 14px", borderRadius:10, border:`2px solid ${BRAND.color.light}`, fontSize:16, fontWeight:700, outline:"none", textAlign:"center", fontFamily:"inherit" }}/>
+            <span style={{ alignSelf:"center", fontSize:22, color:BRAND.color.muted, fontWeight:700 }}>/</span>
+            <input type="number" inputMode="numeric" placeholder="Diastolic" value={bpDia} onChange={e => setBpDia(e.target.value)}
+              style={{ flex:1, padding:"12px 14px", borderRadius:10, border:`2px solid ${BRAND.color.light}`, fontSize:16, fontWeight:700, outline:"none", textAlign:"center", fontFamily:"inherit" }}/>
+          </div>
+        )}
+        {activeType==="blood_sugar" && (
+          <>
+            <input type="number" inputMode="numeric" placeholder="e.g. 110" value={sugarVal} onChange={e => setSugarVal(e.target.value)}
+              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`2px solid ${BRAND.color.light}`, fontSize:16, fontWeight:700, outline:"none", textAlign:"center", marginBottom:10, fontFamily:"inherit", boxSizing:"border-box" }}/>
+            <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+              {["fasting","after_meal","bedtime"].map(ctx => (
+                <button key={ctx} onClick={() => setSugarCtx(ctx)}
+                  style={{
+                    flex:1, padding:"8px 6px", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+                    border:`1px solid ${sugarCtx===ctx ? VITAL_CFG.blood_sugar.color : BRAND.color.light}`,
+                    background: sugarCtx===ctx ? VITAL_CFG.blood_sugar.bg : "white",
+                    color: sugarCtx===ctx ? VITAL_CFG.blood_sugar.color : BRAND.color.muted,
+                  }}>
+                  {ctx.replace("_"," ")}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {activeType==="weight" && (
+          <input type="number" inputMode="decimal" step="0.1" placeholder="e.g. 72.5" value={weightVal} onChange={e => setWeightVal(e.target.value)}
+            style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`2px solid ${BRAND.color.light}`, fontSize:16, fontWeight:700, outline:"none", textAlign:"center", marginBottom:10, fontFamily:"inherit", boxSizing:"border-box" }}/>
+        )}
+        <input placeholder="Notes (optional) — e.g. felt dizzy, after walking" value={notes} onChange={e => setNotes(e.target.value)}
+          style={{ width:"100%", padding:"10px 12px", borderRadius:10, border:`1px solid ${BRAND.color.light}`, fontSize:13, outline:"none", marginBottom:10, fontFamily:"inherit", boxSizing:"border-box" }}/>
+        <button onClick={submit}
+          style={{ width:"100%", padding:"12px", borderRadius:12, border:"none", background: saved ? "#27AE8A" : cfg.color, color:"white", fontWeight:700, fontSize:15, cursor:"pointer", transition:"background 0.3s", fontFamily:"inherit" }}>
+          {saved ? "✓ Saved" : `Log ${cfg.short.toLowerCase()}`}
+        </button>
+      </div>
+
+      <div style={{ marginBottom:12 }}>
+        <p style={{ fontSize:14, fontWeight:700, marginBottom:10 }}>Recent readings</p>
+        {within30.length===0 && (
+          <div style={{ background:"white", borderRadius:12, padding:"20px", textAlign:"center", color:BRAND.color.muted, fontSize:13 }}>
+            Nothing yet in the last 30 days.
+          </div>
+        )}
+        {within30.slice(0, 10).map(r => {
+          const flag = FLAG_STYLE[classifyReading(r)];
+          const display = r.type === "bp"
+            ? (r.value2 != null ? `${r.value}/${r.value2}` : `${r.value}`)
+            : `${r.value}`;
+          return (
+            <div key={r.id} style={{ display:"flex", alignItems:"center", gap:12, background:"white", borderRadius:12, padding:"12px 14px", marginBottom:8, boxShadow:"0 1px 6px rgba(0,0,0,0.04)", opacity: deletingId === r.id ? 0.4 : 1 }}>
+              <div style={{ flex:1 }}>
+                <p style={{ fontWeight:700, fontSize:16 }}>{display} <span style={{ fontSize:12, color:BRAND.color.muted, fontWeight:500 }}>{cfg.unit}</span></p>
+                <p style={{ fontSize:12, color:BRAND.color.muted }}>
+                  {daysAgoLabel(r._ts)}
+                  {r.context ? ` · ${String(r.context).replace("_"," ")}` : ""}
+                  {r.notes ? ` · ${r.notes}` : ""}
+                </p>
+              </div>
+              <span style={{ fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:flag.bg, color:flag.color }}>{flag.label}</span>
+              <button onClick={() => handleDelete(r.id)} disabled={deletingId===r.id}
+                style={{ background:"none", border:"none", cursor:"pointer", color:BRAND.color.muted, fontSize:18, padding:"0 4px", fontFamily:"inherit" }}
+                aria-label="Delete reading">×</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {beyond30 > 0 && !isPremium && (
+        <div style={{ background:BRAND.color.light, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:10, cursor:"pointer" }} onClick={() => onShowUpgrade && onShowUpgrade()}>
+          <span style={{ fontSize:20 }}>🔒</span>
+          <div style={{ flex:1 }}>
+            <p style={{ fontSize:13, fontWeight:700, color:BRAND.color.text }}>{beyond30} older reading{beyond30!==1?"s":""} hidden</p>
+            <p style={{ fontSize:11, color:BRAND.color.muted }}>Premium unlocks full history, CSV export, and medication-outcome correlation.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MONTHLY DOCTOR-READY SUMMARY (PDF via print window) ─────────────────
+function monthKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildSummaryHTML({ profile, meds, vitals }) {
+  const now = new Date();
+  const monthLabel = now.toLocaleDateString("en-NG", { month:"long", year:"numeric" });
+  const cutoff = Date.now() - 30 * DAY_MS;
+  const recent = (vitals || [])
+    .map(r => ({ ...r, _ts: tsOf(r) }))
+    .filter(v => v._ts >= cutoff)
+    .sort((a, b) => a._ts - b._ts);
+
+  const bp = recent.filter(v => v.type === "bp");
+  const sugar = recent.filter(v => v.type === "blood_sugar");
+  const weight = recent.filter(v => v.type === "weight");
+
+  const avgBp = bp.length
+    ? `${Math.round(bp.reduce((s, r) => s + r.value, 0) / bp.length)}/${
+        bp.filter(r => r.value2 != null).length
+          ? Math.round(bp.filter(r => r.value2 != null).reduce((s, r) => s + r.value2, 0) / bp.filter(r => r.value2 != null).length)
+          : "—"
+      } mmHg`
+    : "—";
+  const avgSugar  = sugar.length  ? `${Math.round(sugar.reduce((s, r) => s + r.value, 0) / sugar.length)} mg/dL` : "—";
+  const latestWeight = weight.length ? `${weight[weight.length-1].value} kg` : "—";
+  const highBp    = bp.filter(v => classifyReading(v) === "high").length;
+  const highSugar = sugar.filter(v => classifyReading(v) === "high").length;
+
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+  const medRows = (meds || []).map(m => `<tr><td>${esc(m.name)}</td><td>${esc(m.time)}</td><td>${esc(m.condition || "")}</td></tr>`).join("");
+
+  const readingRows = recent.slice(-20).reverse().map(r => {
+    const date = new Date(r._ts).toLocaleDateString("en-NG", { day:"numeric", month:"short" });
+    let val = "";
+    if (r.type === "bp") val = `${r.value}${r.value2 != null ? `/${r.value2}` : ""} mmHg`;
+    else if (r.type === "blood_sugar") val = `${r.value} mg/dL${r.context ? ` (${String(r.context).replace("_"," ")})` : ""}`;
+    else if (r.type === "weight") val = `${r.value} kg`;
+    const flag = classifyReading(r);
+    const flagTag = flag === "normal" ? "" : `<span class="flag flag-${flag}">${FLAG_STYLE[flag].label}</span>`;
+    return `<tr><td>${date}</td><td>${esc(VITAL_CFG[r.type]?.label || r.type)}</td><td>${val} ${flagTag}</td><td>${esc(r.notes || "")}</td></tr>`;
+  }).join("");
+
+  return `<!doctype html><html><head><meta charset="utf-8">
+<title>AFYA Monthly Summary — ${esc(profile?.name || "Patient")} — ${monthLabel}</title>
+<style>
+  @page { size: A4; margin: 18mm; }
+  * { box-sizing: border-box; }
+  body { font-family:'Helvetica Neue',Arial,sans-serif; color:#0D2B26; margin:0; padding:24px; font-size:12px; line-height:1.5; }
+  header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0D7E6A; padding-bottom:12px; margin-bottom:18px; }
+  .brand { font-weight:900; color:#0D7E6A; font-size:20px; letter-spacing:2px; }
+  .brand-sub { font-size:11px; color:#6B8C88; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  h2 { font-size:13px; margin:20px 0 8px; color:#0D7E6A; border-bottom:1px solid #E8F5F2; padding-bottom:4px; }
+  .meta { color:#6B8C88; font-size:11px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:10px 0 4px; }
+  .stat { background:#F7FBFA; border:1px solid #E8F5F2; border-radius:8px; padding:10px 12px; }
+  .stat .k { font-size:10px; color:#6B8C88; text-transform:uppercase; letter-spacing:1px; }
+  .stat .v { font-size:18px; font-weight:800; color:#0D2B26; margin-top:2px; }
+  .stat .s { font-size:10px; color:#6B8C88; margin-top:2px; }
+  table { width:100%; border-collapse:collapse; font-size:11px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid #E8F5F2; vertical-align:top; }
+  th { background:#F7FBFA; font-weight:700; color:#0D7E6A; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; }
+  .flag { display:inline-block; padding:1px 6px; border-radius:10px; font-size:9px; font-weight:700; margin-left:4px; }
+  .flag-watch { background:#FFF6E6; color:#C87A10; }
+  .flag-high { background:#FFF0F0; color:#C03030; }
+  footer { margin-top:24px; padding-top:10px; border-top:1px solid #E8F5F2; font-size:10px; color:#6B8C88; text-align:center; }
+  .cta { background:#E8F5F2; border-radius:8px; padding:10px 12px; font-size:11px; color:#0D2B26; margin-top:10px; }
+  .btn-bar { display:flex; gap:8px; margin-bottom:16px; }
+  .btn { padding:10px 14px; border-radius:8px; border:none; font-weight:700; cursor:pointer; font-size:12px; }
+  .btn-primary { background:#0D7E6A; color:white; }
+  .btn-ghost { background:#E8F5F2; color:#0D7E6A; }
+  @media print { .btn-bar { display:none; } }
+</style></head><body>
+<div class="btn-bar">
+  <button class="btn btn-primary" onclick="window.print()">🖨️  Save as PDF / Print</button>
+  <button class="btn btn-ghost" onclick="window.close()">Close</button>
+</div>
+<header>
+  <div>
+    <div class="brand">AFYA</div>
+    <div class="brand-sub">Health, every day.</div>
+  </div>
+  <div style="text-align:right;">
+    <h1>Monthly Health Summary</h1>
+    <div class="meta">${monthLabel} · Generated ${now.toLocaleDateString("en-NG")}</div>
+  </div>
+</header>
+<h2>Patient</h2>
+<table>
+  <tr><td style="width:130px;"><strong>Name</strong></td><td>${esc(profile?.name || "—")}</td></tr>
+  <tr><td><strong>Age</strong></td><td>${esc(profile?.age || "—")}</td></tr>
+  <tr><td><strong>Primary concern</strong></td><td>${esc(profile?.condition || "—")}</td></tr>
+  ${profile?.weeks ? `<tr><td><strong>Pregnancy</strong></td><td>Week ${esc(profile.weeks)}</td></tr>` : ""}
+</table>
+<h2>30-Day Snapshot</h2>
+<div class="grid">
+  <div class="stat"><div class="k">Avg BP</div><div class="v">${avgBp}</div><div class="s">${bp.length} reading${bp.length!==1?"s":""}${highBp?` · ${highBp} high`:""}</div></div>
+  <div class="stat"><div class="k">Avg Blood Sugar</div><div class="v">${avgSugar}</div><div class="s">${sugar.length} reading${sugar.length!==1?"s":""}${highSugar?` · ${highSugar} high`:""}</div></div>
+  <div class="stat"><div class="k">Latest Weight</div><div class="v">${latestWeight}</div><div class="s">${weight.length} reading${weight.length!==1?"s":""}</div></div>
+</div>
+<h2>Current Medications</h2>
+<table>
+  <thead><tr><th>Medication</th><th>Time</th><th>For</th></tr></thead>
+  <tbody>${medRows || `<tr><td colspan="3">No medications on file.</td></tr>`}</tbody>
+</table>
+<h2>Recent Readings (last 20)</h2>
+<table>
+  <thead><tr><th>Date</th><th>Type</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>${readingRows || `<tr><td colspan="4">No readings logged yet.</td></tr>`}</tbody>
+</table>
+<div class="cta"><strong>For the doctor:</strong> This is a self-reported summary from AFYA, generated by the patient. Readings are from a home BP monitor / glucometer unless otherwise noted. Please interpret alongside clinical assessment.</div>
+<footer>
+  <div>Generated by AFYA Health · getafya.co · Not a medical device · Summary does not replace clinical judgement.</div>
+  <div>Patient ID: ${esc((profile?.name || "USER").toUpperCase().slice(0, 4))}-${monthKey().replace("-", "")}</div>
+</footer>
+</body></html>`;
+}
+
+function openSummaryWindow(html) {
+  const w = window.open("", "_blank", "width=820,height=1000");
+  if (!w) return false;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  return true;
+}
+
+function MonthlySummaryCard({ isPremium, canGenerate, totalReadings, onGenerate }) {
+  return (
+    <div style={{ background:"white", borderRadius:16, padding:"16px 18px", marginBottom:16, border:`1px solid ${BRAND.color.light}`, boxShadow:"0 1px 8px rgba(0,0,0,0.06)" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
+        <div style={{ width:44, height:44, borderRadius:12, background:BRAND.color.light, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>📄</div>
+        <div style={{ flex:1 }}>
+          <p style={{ fontWeight:700, fontSize:14 }}>Doctor-ready summary</p>
+          <p style={{ fontSize:12, color:BRAND.color.muted, marginTop:2 }}>
+            {isPremium ? "Unlimited with Premium"
+              : canGenerate ? "1 free summary per month · resets next month"
+              : "Already used this month · upgrade for unlimited"}
+          </p>
+        </div>
+      </div>
+      <p style={{ fontSize:12, color:BRAND.color.muted, marginBottom:12, lineHeight:1.5 }}>
+        A printable one-page PDF with your readings, medications, and flags — based on the last 30 days of {totalReadings} logged entries.
+      </p>
+      <button onClick={onGenerate}
+        style={{
+          width:"100%", padding:"12px", borderRadius:12, border:"none",
+          background: canGenerate ? BRAND.color.primary : BRAND.color.light,
+          color:       canGenerate ? "white"              : BRAND.color.muted,
+          fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit",
+        }}>
+        {canGenerate ? "📄  Generate this month's summary" : "🔒  Monthly limit reached"}
+      </button>
+    </div>
+  );
+}
+
 // ─── WEEKLY DIGEST ────────────────────────────────────────────────────────
 function WeeklyDigest({ isPremium, insight, insightLoading, onRefresh, onShowUpgrade }) {
   const purple = { bg:"linear-gradient(135deg,#F8F0FF,#EEF0FF)", border:"#C5B3E6", text:"#4A3080", accent:"#7C5CBF", light:"rgba(124,92,191,0.12)" };
@@ -681,11 +1147,12 @@ function WeeklyDigest({ isPremium, insight, insightLoading, onRefresh, onShowUpg
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────
-function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isPremium, onShowUpgrade, vitals, logVital, insight, insightLoading, onRefreshInsight }) {
+function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isPremium, onShowUpgrade, vitals, logVital, insight, insightLoading, onRefreshInsight, onGoToLog, onGenerateSummary, canGenerateSummary }) {
   const today = new Date().toLocaleDateString("en-NG", { weekday:"long", day:"numeric", month:"long" });
   const allMeds = profile.condition==="maternal" ? meds.filter(m => m.condition==="maternal") : meds.filter(m => m.condition!=="maternal");
   const takenCount  = meds.filter(m => m.taken).length;
   const healthScore = Math.round((takenCount / meds.length) * 100);
+  const totalReadings30 = (vitals || []).filter(v => tsOf(v) >= Date.now() - 30 * DAY_MS).length;
 
   return (
     <div style={{ padding:"24px 20px", background:"#F9FCFB", minHeight:"100%" }}>
@@ -734,6 +1201,20 @@ function Dashboard({ profile, meds, onToggleMed, referralState, onGoToRefer, isP
       )}
 
       <VitalLogCard profile={profile} vitals={vitals||[]} onLog={logVital}/>
+
+      {/* Full vitals log CTA */}
+      <div onClick={onGoToLog}
+        style={{ background:"white", borderRadius:14, padding:"12px 16px", marginBottom:16, boxShadow:"0 1px 8px rgba(0,0,0,0.05)", display:"flex", alignItems:"center", gap:12, cursor:"pointer", border:`1px solid ${BRAND.color.light}` }}>
+        <div style={{ width:40, height:40, borderRadius:10, background:BRAND.color.light, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>📊</div>
+        <div style={{ flex:1 }}>
+          <p style={{ fontWeight:700, fontSize:13 }}>See 30-day trends</p>
+          <p style={{ fontSize:11, color:BRAND.color.muted, marginTop:1 }}>{totalReadings30} reading{totalReadings30!==1?"s":""} this month · BP, sugar, weight</p>
+        </div>
+        <span style={{ fontSize:18, color:BRAND.color.muted }}>›</span>
+      </div>
+
+      <MonthlySummaryCard isPremium={isPremium} canGenerate={canGenerateSummary} totalReadings={totalReadings30} onGenerate={onGenerateSummary}/>
+
       <WeeklyDigest isPremium={isPremium} insight={insight} insightLoading={insightLoading} onRefresh={onRefreshInsight} onShowUpgrade={onShowUpgrade}/>
 
       <div style={{ marginBottom:20 }}>
@@ -1612,15 +2093,52 @@ function AfyaApp() {
     );
   };
 
-  const logVital = async (type, value, value2, context, unit) => {
+  const logVital = async (type, value, value2, context, unit, notes) => {
     if (!session) return;
     await sb.from("health_logs").insert({
       user_id: session.user.id, type, value,
       value2: value2 || null, context: context || null, unit,
+      notes: notes || null,
       logged_at: new Date().toISOString(),
     });
     trackEvent("vital_logged", { type, context }, session.user.id);
     await loadVitals(session.user.id);
+  };
+
+  const deleteVital = async (id) => {
+    if (!session) return;
+    await sb.from("health_logs").delete().eq("id", id).eq("user_id", session.user.id);
+    await loadVitals(session.user.id);
+  };
+
+  // ── Monthly summary gate (free tier: 1 per calendar month) ─────────────
+  // Stored in localStorage keyed per user; a soft gate — hardening to server-side is a follow-up.
+  const summaryGateKey = session ? `afya_summary_month_${session.user.id}` : null;
+  const lastSummaryMonth = summaryGateKey ? (typeof localStorage !== "undefined" ? localStorage.getItem(summaryGateKey) : null) : null;
+  const currentMonth = monthKey();
+  const canGenerateSummary = isPremium || lastSummaryMonth !== currentMonth;
+  const [summaryToast, setSummaryToast] = useState(null);
+
+  const generateSummary = () => {
+    if (!canGenerateSummary) {
+      setSummaryToast({ type:"locked", msg:"You've used this month's free summary. Upgrade for unlimited + weekly reports." });
+      setTimeout(() => setSummaryToast(null), 4000);
+      trackEvent("summary_gate_hit", {}, session?.user?.id);
+      return;
+    }
+    const html = buildSummaryHTML({ profile, meds, vitals });
+    const opened = openSummaryWindow(html);
+    if (!opened) {
+      setSummaryToast({ type:"locked", msg:"Pop-up blocked — please allow pop-ups for AFYA and try again." });
+      setTimeout(() => setSummaryToast(null), 4000);
+      return;
+    }
+    if (!isPremium && summaryGateKey && typeof localStorage !== "undefined") {
+      try { localStorage.setItem(summaryGateKey, currentMonth); } catch {}
+    }
+    setSummaryToast({ type:"success", msg:"Summary ready in a new tab. Tap 'Save as PDF / Print' to download." });
+    setTimeout(() => setSummaryToast(null), 4000);
+    trackEvent("summary_generated", { is_premium: isPremium }, session?.user?.id);
   };
 
   const refreshInsight = useCallback(async () => {
@@ -1746,6 +2264,7 @@ function AfyaApp() {
   const tabs = [
     { key:"home",    label:"Home",    emoji:"🏠" },
     { key:"chat",    label:"AFYA AI", emoji:"🤖" },
+    { key:"log",     label:"Log",     emoji:"📊" },
     { key:"meds",    label:"Meds",    emoji:"💊" },
     { key:"refer",   label:"Refer",   emoji:"🎁" },
     { key:"profile", label:"Profile", emoji:"👤" },
@@ -1776,12 +2295,25 @@ function AfyaApp() {
         </div>
       </div>
 
-      <div style={{ flex:1, overflow:"auto" }}>
-        {tab==="home"    && <Dashboard profile={profile} meds={meds} onToggleMed={toggleMed} referralState={referralState} onGoToRefer={() => setTab("refer")} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} logVital={logVital} insight={insight} insightLoading={insightLoading} onRefreshInsight={refreshInsight}/>}
+      <div style={{ flex:1, overflow:"auto", position:"relative" }}>
+        {tab==="home"    && <Dashboard profile={profile} meds={meds} onToggleMed={toggleMed} referralState={referralState} onGoToRefer={() => setTab("refer")} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} logVital={logVital} insight={insight} insightLoading={insightLoading} onRefreshInsight={refreshInsight} onGoToLog={() => setTab("log")} onGenerateSummary={generateSummary} canGenerateSummary={canGenerateSummary}/>}
         {tab==="chat"    && <Chat profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} vitals={vitals} meds={meds}/>}
+        {tab==="log"     && <VitalsLog vitals={vitals} onLogVital={logVital} onDeleteVital={deleteVital} isPremium={isPremium} onShowUpgrade={handleShowUpgrade}/>}
         {tab==="meds"    && <Medications meds={meds} medLogs={medLogs} onToggleMed={toggleMed} onAddMed={addMed} profile={profile} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} referralCode={referralState.myCode}/>}
         {tab==="refer"   && <ReferFriends profile={profile} referralState={referralState} onSimulateReferral={simulateReferral}/>}
         {tab==="profile" && <Profile profile={profile} referralState={referralState} isPremium={isPremium} onShowUpgrade={handleShowUpgrade} userId={session.user.id}/>}
+
+        {summaryToast && (
+          <div style={{
+            position:"fixed", bottom:88, left:16, right:16, maxWidth:398, margin:"0 auto", zIndex:50,
+            background: summaryToast.type==="success" ? BRAND.color.primary : "#C05020",
+            color:"white", borderRadius:12, padding:"12px 14px", fontSize:13, fontWeight:600,
+            boxShadow:"0 4px 18px rgba(0,0,0,0.18)", display:"flex", alignItems:"center", gap:10,
+          }}>
+            <span style={{ fontSize:18 }}>{summaryToast.type==="success" ? "📄" : "🔒"}</span>
+            <span style={{ flex:1, lineHeight:1.4 }}>{summaryToast.msg}</span>
+          </div>
+        )}
       </div>
 
       <div style={{ background:"white", borderTop:"1px solid #EEF2F0", padding:"8px 0 16px", display:"flex" }}>

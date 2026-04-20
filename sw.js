@@ -1,9 +1,9 @@
-// AFYA Service Worker — v2
+// AFYA Service Worker — v3 (vitals log + monthly summary)
 // Strategy:
 //   App shell (HTML, fonts, icons) → Cache-first
 //   Supabase / Netlify functions  → Network-first (never cache API calls)
 
-const CACHE_NAME  = "afya-v2";
+const CACHE_NAME  = "afya-v3";
 const APP_SHELL   = [
   "/app.html",
   "/manifest.json",
